@@ -230,7 +230,13 @@ async function listSkills(options: ListOptions): Promise<void> {
   });
 
   const scope = options.global ? 'global' : options.project ? 'project' : 'both';
-  const skills = await skillsHandler.list(scope);
+  const { resources: skills, errors } = await skillsHandler.list(scope);
+
+  if (errors.length > 0) {
+    for (const error of errors) {
+      logger.warn(`Failed to list skills for ${error.agent} (${error.scope}): ${error.error}`);
+    }
+  }
 
   if (skills.length === 0) {
     logger.info('No skills installed');
@@ -260,7 +266,7 @@ async function removeSkill(name: string, options: RemoveOptions): Promise<void> 
   });
 
   // Find the skill in installed resources
-  const skills = await skillsHandler.list('both');
+  const { resources: skills } = await skillsHandler.list('both');
   const skill = skills.find((s) => s.name === name);
 
   if (!skill) {

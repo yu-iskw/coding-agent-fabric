@@ -16,6 +16,8 @@ import type {
   InstallOptions,
   RemoveOptions,
   Scope,
+  ListResult,
+  ListError,
 } from '@coding-agent-fabric/common';
 import { safeJoin } from '@coding-agent-fabric/common';
 import { promises as fs } from 'fs';
@@ -261,8 +263,9 @@ export class MCPHandler extends BaseResourceHandler {
   /**
    * List installed MCP servers
    */
-  async list(scope: 'global' | 'project' | 'both'): Promise<InstalledResource[]> {
+  async list(scope: 'global' | 'project' | 'both'): Promise<ListResult> {
     const resources: InstalledResource[] = [];
+    const errors: ListError[] = [];
     const scopes: Scope[] = scope === 'both' ? ['global', 'project'] : [scope];
     const agents = this.getSupportedAgents();
 
@@ -321,13 +324,36 @@ export class MCPHandler extends BaseResourceHandler {
             }
           }
         } catch (error) {
-          // Config file doesn't exist or can't be read
-          this.context.log.debug(`Cannot read MCP config at ${configPath}:`, error);
+          // Config file doesn't exist is a common case and not an error
+          if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+            this.context.log.debug(`MCP config file not found at ${configPath}`);
+            continue;
+          }
+
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          this.context.audit?.failure('list', 'mcp', this.type, errorMessage, configPath);
+
+          // For plugins, we don't always have a sanitizePath helper readily available
+          // but we can at least try to mask the home directory
+          let displayPath = configPath;
+          const home = os.homedir();
+          if (displayPath.startsWith(home)) {
+            displayPath = displayPath.replace(home, '~');
+          }
+
+          errors.push({
+            agent,
+            scope: s,
+            error: `Failed to access MCP config at ${displayPath}: ${errorMessage}`,
+          });
         }
       }
     }
 
-    return resources;
+    return {
+      resources,
+      errors,
+    };
   }
 
   /**

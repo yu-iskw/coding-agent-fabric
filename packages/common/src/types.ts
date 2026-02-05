@@ -312,6 +312,23 @@ export interface AuditRecord {
 }
 
 /**
+ * List error information
+ */
+export interface ListError {
+  agent: AgentType;
+  scope: Scope;
+  error: string;
+}
+
+/**
+ * Result of listing resources
+ */
+export interface ListResult<T extends InstalledResource = InstalledResource> {
+  resources: T[];
+  errors: ListError[];
+}
+
+/**
  * Lock file configuration
  */
 export interface LockFileConfig {

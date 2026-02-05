@@ -19,6 +19,8 @@ import type {
   ResourceFile,
   NamingStrategy,
   SourceType,
+  ListResult,
+  ListError,
 } from '@coding-agent-fabric/common';
 import {
   SKILL_FILE_NAME,
@@ -229,8 +231,9 @@ export class SkillsHandler implements ResourceHandler {
   /**
    * List installed skills by scanning agent directories
    */
-  async list(scope: 'global' | 'project' | 'both'): Promise<InstalledResource[]> {
+  async list(scope: 'global' | 'project' | 'both'): Promise<ListResult> {
     const resourcesMap: Map<string, InstalledResource> = new Map();
+    const errors: ListError[] = [];
     const agents = this.getSupportedAgents();
     const scopes: Scope[] = scope === 'both' ? ['project', 'global'] : [scope];
 
@@ -238,8 +241,9 @@ export class SkillsHandler implements ResourceHandler {
 
     for (const agent of agents) {
       for (const s of scopes) {
+        let installPath = '';
         try {
-          const installPath = this.getInstallPath(agent, s);
+          installPath = this.getInstallPath(agent, s);
           if (!existsSync(installPath) || scannedPaths.has(installPath)) continue;
           scannedPaths.add(installPath);
 
@@ -313,13 +317,21 @@ export class SkillsHandler implements ResourceHandler {
             }
           }
         } catch (error) {
-          // Log error but continue with other agents/scopes
-          console.error('Failed to list skills for agent %s in scope %s:', agent, s, error);
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          this.auditLogger.failure('list', 'skills', this.type, errorMessage, installPath);
+          errors.push({
+            agent,
+            scope: s,
+            error: `Failed to access ${this.auditLogger.sanitizePath(installPath)}: ${errorMessage}`,
+          });
         }
       }
     }
 
-    return Array.from(resourcesMap.values());
+    return {
+      resources: Array.from(resourcesMap.values()),
+      errors,
+    };
   }
 
   /**

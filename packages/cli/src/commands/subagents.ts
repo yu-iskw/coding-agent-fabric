@@ -220,7 +220,13 @@ async function listSubagents(options: ListOptions): Promise<void> {
   });
 
   const scope = options.global ? 'global' : options.project ? 'project' : 'both';
-  const subagents = await subagentsHandler.list(scope);
+  const { resources: subagents, errors } = await subagentsHandler.list(scope);
+
+  if (errors.length > 0) {
+    for (const error of errors) {
+      logger.warn(`Failed to list subagents for ${error.agent} (${error.scope}): ${error.error}`);
+    }
+  }
 
   if (subagents.length === 0) {
     logger.info('No subagents installed');
@@ -250,7 +256,7 @@ async function removeSubagent(name: string, options: RemoveOptions): Promise<voi
   });
 
   // Find the subagent in installed resources
-  const subagents = await subagentsHandler.list('both');
+  const { resources: subagents } = await subagentsHandler.list('both');
   const subagent = subagents.find((s) => s.name === name);
 
   if (!subagent) {

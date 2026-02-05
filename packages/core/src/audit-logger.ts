@@ -80,7 +80,7 @@ export class AuditLogger {
   /**
    * Sanitize a path to remove sensitive information
    */
-  private sanitizePath(p: string | undefined): string | undefined {
+  public sanitizePath(p: string | undefined): string | undefined {
     if (!p) return p;
 
     // If it's not an absolute path, we don't need to do much

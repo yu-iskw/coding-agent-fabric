@@ -230,7 +230,13 @@ async function listRules(options: ListOptions): Promise<void> {
   });
 
   const scope = options.global ? 'global' : options.project ? 'project' : 'both';
-  const rules = await rulesHandler.list(scope);
+  const { resources: rules, errors } = await rulesHandler.list(scope);
+
+  if (errors.length > 0) {
+    for (const error of errors) {
+      logger.warn(`Failed to list rules for ${error.agent} (${error.scope}): ${error.error}`);
+    }
+  }
 
   if (rules.length === 0) {
     logger.info('No rules installed');
@@ -263,7 +269,7 @@ async function removeRule(name: string, options: RemoveOptions): Promise<void> {
   });
 
   // Find the rule in installed resources
-  const rules = await rulesHandler.list('both');
+  const { resources: rules } = await rulesHandler.list('both');
   const rule = rules.find((r) => r.name === name);
 
   if (!rule) {
@@ -297,17 +303,7 @@ async function removeRule(name: string, options: RemoveOptions): Promise<void> {
 
   spinner.start(`Removing ${name}...`);
 
-  await rulesHandler.remove(
-    {
-      type: 'rules',
-      name,
-      description: '',
-      metadata: {},
-      files: [],
-    },
-    targets,
-    { yes: options.yes },
-  );
+  await rulesHandler.remove(rule, targets, { yes: options.yes });
 
   spinner.succeed(`Removed ${name}`);
   logger.success('Rule removed successfully!');

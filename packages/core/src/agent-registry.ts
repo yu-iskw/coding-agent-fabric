@@ -49,8 +49,8 @@ export class AgentRegistry {
     this.register({
       name: 'cursor',
       displayName: 'Cursor',
-      skillsDir: join(this.projectRoot, '.cursor', 'rules'),
-      globalSkillsDir: join(homedir(), '.cursor', 'rules'),
+      skillsDir: join(this.projectRoot, '.cursor', 'fabric-skills'),
+      globalSkillsDir: join(homedir(), '.cursor', 'fabric-skills'),
       rulesDir: join(this.projectRoot, '.cursor', 'rules'),
       globalRulesDir: join(homedir(), '.cursor', 'rules'),
       hooksDir: join(this.projectRoot, '.cursor', 'hooks'),
@@ -91,8 +91,8 @@ export class AgentRegistry {
     this.register({
       name: 'windsurf',
       displayName: 'Windsurf',
-      skillsDir: join(this.projectRoot, '.windsurf', 'rules'),
-      globalSkillsDir: join(homedir(), '.windsurf', 'rules'),
+      skillsDir: join(this.projectRoot, '.windsurf', 'fabric-skills'),
+      globalSkillsDir: join(homedir(), '.windsurf', 'fabric-skills'),
       rulesDir: join(this.projectRoot, '.windsurf', 'rules'),
       globalRulesDir: join(homedir(), '.windsurf', 'rules'),
       hooksDir: join(this.projectRoot, '.windsurf', 'hooks'),

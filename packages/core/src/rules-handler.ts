@@ -17,6 +17,8 @@ import type {
   RemoveOptions,
   Scope,
   NamingStrategy,
+  ListResult,
+  ListError,
 } from '@coding-agent-fabric/common';
 import {
   EXCLUDE_PATTERNS,
@@ -96,9 +98,8 @@ export class RulesHandler implements ResourceHandler {
       const relativePath = relative(localPath, ruleDir);
       const pathParts = relativePath.split(sep).filter(Boolean);
       // If the file is in a 'rules' directory, don't include that in categories
-      const categoryParts = pathParts.filter(
-        (p) => p !== 'rules' && p !== '.cursor' && p !== '.claude',
-      );
+      const agentNames = this.agentRegistry.getAllNames().map((name) => `.${name}`);
+      const categoryParts = pathParts.filter((p) => p !== 'rules' && !agentNames.includes(p));
       const categories = options?.categories || categoryParts;
 
       // Generate smart name based on strategy
@@ -236,8 +237,9 @@ export class RulesHandler implements ResourceHandler {
   /**
    * List installed rules by scanning agent directories
    */
-  async list(scope: 'global' | 'project' | 'both'): Promise<InstalledResource[]> {
+  async list(scope: 'global' | 'project' | 'both'): Promise<ListResult> {
     const resourcesMap: Map<string, InstalledResource> = new Map();
+    const errors: ListError[] = [];
     const agents = this.getSupportedAgents();
     const scopes: Scope[] = scope === 'both' ? ['project', 'global'] : [scope];
 
@@ -245,8 +247,9 @@ export class RulesHandler implements ResourceHandler {
 
     for (const agent of agents) {
       for (const s of scopes) {
+        let installPath = '';
         try {
-          const installPath = this.getInstallPath(agent, s);
+          installPath = this.getInstallPath(agent, s);
           if (!existsSync(installPath) || scannedPaths.has(installPath)) continue;
           scannedPaths.add(installPath);
 
@@ -254,22 +257,23 @@ export class RulesHandler implements ResourceHandler {
           for (const entry of entries) {
             if (entry.isFile() || entry.isSymbolicLink()) {
               const ext = extname(entry.name);
-              if (RULE_FILE_EXTENSIONS.includes(ext as any)) {
+              if (RULE_FILE_EXTENSIONS.includes(ext as (typeof RULE_FILE_EXTENSIONS)[number])) {
                 const rulePath = join(installPath, entry.name);
                 const content = await readFile(rulePath, 'utf-8');
                 const metadata = this.parseRuleMetadata(content, rulePath);
 
-                const resourceName = basename(entry.name, ext);
-                let resource = resourcesMap.get(resourceName);
+                const filenameBasedName = basename(entry.name, ext);
+                const resourceKey = metadata.name || filenameBasedName;
+                let resource = resourcesMap.get(resourceKey);
 
                 if (!resource) {
                   resource = {
                     type: this.type,
-                    name: resourceName,
+                    name: resourceKey,
                     version: metadata.version,
                     description: metadata.description || '',
                     metadata: {
-                      originalName: metadata.name || resourceName,
+                      originalName: metadata.name || filenameBasedName,
                       globs: metadata.globs,
                     },
                     files: [],
@@ -280,7 +284,7 @@ export class RulesHandler implements ResourceHandler {
                     updatedAt: '',
                     installedFor: [],
                   };
-                  resourcesMap.set(resourceName, resource);
+                  resourcesMap.set(resourceKey, resource);
                 }
 
                 const existingInstall = resource.installedFor.find(
@@ -297,12 +301,21 @@ export class RulesHandler implements ResourceHandler {
             }
           }
         } catch (error) {
-          console.error('Failed to list rules for agent %s in scope %s:', agent, s, error);
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          this.auditLogger.failure('list', 'rules', this.type, errorMessage, installPath);
+          errors.push({
+            agent,
+            scope: s,
+            error: `Failed to access ${this.auditLogger.sanitizePath(installPath)}: ${errorMessage}`,
+          });
         }
       }
     }
 
-    return Array.from(resourcesMap.values());
+    return {
+      resources: Array.from(resourcesMap.values()),
+      errors,
+    };
   }
 
   /**
@@ -383,7 +396,7 @@ export class RulesHandler implements ResourceHandler {
         ruleFiles.push(...subFiles);
       } else if (entry.isFile()) {
         const ext = extname(entry.name);
-        if (RULE_FILE_EXTENSIONS.includes(ext as any)) {
+        if (RULE_FILE_EXTENSIONS.includes(ext as (typeof RULE_FILE_EXTENSIONS)[number])) {
           // Avoid picking up SKILL.md as a rule
           if (entry.name !== 'SKILL.md') {
             ruleFiles.push(fullPath);
@@ -450,7 +463,10 @@ export class RulesHandler implements ResourceHandler {
   /**
    * Generate config hash for update detection
    */
-  private generateConfigHash(metadata: any, content: string): string {
+  private generateConfigHash(
+    metadata: { name?: string; version?: string; description?: string; globs?: string[] },
+    content: string,
+  ): string {
     const str = JSON.stringify(metadata) + content;
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
