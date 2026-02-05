@@ -43,4 +43,4 @@ RUN caf --version
 # Satisfy trivy/DS026
 HEALTHCHECK NONE
 
-CMD ["/app/integration_tests/scripts/runner.sh"]
+ENTRYPOINT ["/app/integration_tests/scripts/runner.sh"]
