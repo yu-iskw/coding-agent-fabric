@@ -14,7 +14,6 @@ for arg in "$@"; do
   case $arg in
     --verbose|-v)
       VERBOSE=true
-      shift
       ;;
     --help|-h)
       echo "Usage: $0 [OPTIONS]"
