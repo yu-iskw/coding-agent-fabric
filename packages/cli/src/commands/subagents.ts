@@ -3,18 +3,13 @@
  */
 
 import { Command } from 'commander';
-import {
-  AgentRegistry,
-  LockManager,
-  SourceParser,
-  SubagentsHandler,
-} from '@coding-agent-fabric/core';
-import { parseSource, type AgentType, type Scope } from '@coding-agent-fabric/common';
+import { AgentRegistry, SubagentsHandler } from '@coding-agent-fabric/core';
+import { type AgentType, type Scope } from '@coding-agent-fabric/common';
 import type { AddOptions, ListOptions, RemoveOptions, UpdateOptions } from '../types/index.js';
 import { logger } from '../utils/logger.js';
 import { spinner } from '../utils/spinner.js';
 import { confirmAction, selectAgents, selectScope, selectResources } from '../utils/prompts.js';
-import { join } from 'node:path';
+import { pnpmAdd, resolvePackagePath } from '../utils/pnpm.js';
 import { cwd } from 'node:process';
 
 /**
@@ -105,31 +100,20 @@ async function addSubagents(source: string, options: AddOptions): Promise<void> 
 
   // Initialize components
   const agentRegistry = new AgentRegistry(projectRoot);
-  const lockManager = new LockManager({ projectRoot });
-  const sourceParser = new SourceParser();
   const subagentsHandler = new SubagentsHandler({
     agentRegistry,
-    lockManager,
     projectRoot,
   });
 
-  // Parse source
-  spinner.start('Parsing source...');
-  const parsedSource = parseSource(source);
-  spinner.succeed(`Source parsed: ${parsedSource.type}`);
+  // Use pnpm to add the package
+  spinner.start(`Installing ${source} via pnpm...`);
+  const packageName = await pnpmAdd(source, projectRoot);
+  const packagePath = resolvePackagePath(packageName, projectRoot);
+  spinner.succeed(`Installed ${packageName}`);
 
-  // Download and discover resources
+  // Discover resources from the installed package
   spinner.start('Discovering subagents...');
-  let downloadedPath = parsedSource.localPath;
-
-  if (parsedSource.type !== 'local') {
-    const result = await sourceParser.parse(source, {
-      targetDir: join(projectRoot, '.coding-agent-fabric', 'cache'),
-    });
-    downloadedPath = result.localDir;
-  }
-
-  const resources = await subagentsHandler.discover({ ...parsedSource, localPath: downloadedPath });
+  const resources = await subagentsHandler.discoverFromPath(packagePath);
   spinner.succeed(`Found ${resources.length} subagent(s)`);
 
   if (resources.length === 0) {
@@ -193,27 +177,6 @@ async function addSubagents(source: string, options: AddOptions): Promise<void> 
       yes: options.yes,
     });
 
-    // Update lock file
-    await lockManager.addResource({
-      type: 'subagents',
-      handler: 'built-in',
-      name: resource.name,
-      version: resource.version,
-      source,
-      sourceType: parsedSource.type,
-      sourceUrl: parsedSource.url,
-      installedAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      installedFor: targets.map((t) => ({
-        agent: t.agent,
-        scope: t.scope,
-        path: subagentsHandler.getInstallPath(t.agent, t.scope),
-      })),
-      model: resource.metadata.model as string,
-      format: resource.metadata.format as 'claude-code-yaml' | 'coding-agent-fabric-json',
-      configHash: resource.metadata.configHash as string,
-    });
-
     spinner.succeed(`Installed ${resource.name}`);
   }
 
@@ -227,10 +190,8 @@ async function listSubagents(options: ListOptions): Promise<void> {
   const projectRoot = cwd();
 
   const agentRegistry = new AgentRegistry(projectRoot);
-  const lockManager = new LockManager({ projectRoot });
   const subagentsHandler = new SubagentsHandler({
     agentRegistry,
-    lockManager,
     projectRoot,
   });
 
@@ -245,7 +206,9 @@ async function listSubagents(options: ListOptions): Promise<void> {
   logger.header('Installed Subagents');
   for (const subagent of subagents) {
     logger.log(`\n  ${subagent.name}${subagent.version ? ` (v${subagent.version})` : ''}`);
-    logger.log(`    Source: ${subagent.source}`);
+    if (subagent.source) {
+      logger.log(`    Source: ${subagent.source}`);
+    }
     logger.log(`    Installed for: ${subagent.installedFor.map((i) => i.agent).join(', ')}`);
   }
 }
@@ -257,17 +220,16 @@ async function removeSubagent(name: string, options: RemoveOptions): Promise<voi
   const projectRoot = cwd();
 
   const agentRegistry = new AgentRegistry(projectRoot);
-  const lockManager = new LockManager({ projectRoot });
   const subagentsHandler = new SubagentsHandler({
     agentRegistry,
-    lockManager,
     projectRoot,
   });
 
-  // Load lock file to get resource info
-  const resourceEntry = await lockManager.getResource(name);
+  // Find the subagent in installed resources
+  const subagents = await subagentsHandler.list('both');
+  const subagent = subagents.find((s) => s.name === name);
 
-  if (!resourceEntry || resourceEntry.type !== 'subagents') {
+  if (!subagent) {
     logger.error(`Subagent '${name}' not found`);
     process.exit(1);
   }
@@ -281,15 +243,20 @@ async function removeSubagent(name: string, options: RemoveOptions): Promise<voi
     }
   }
 
-  // Remove from targets
+  // Determine targets to remove from
   const scope: 'global' | 'project' | 'both' = options.global ? 'global' : options.scope || 'both';
-  const targets = resourceEntry.installedFor
-    .filter((install: { scope: string }) => scope === 'both' || install.scope === scope)
-    .map((install: { agent: string; scope: string }) => ({
+  const targets = subagent.installedFor
+    .filter((install) => scope === 'both' || install.scope === scope)
+    .map((install) => ({
       agent: install.agent as AgentType,
       scope: install.scope as Scope,
       mode: 'copy' as const,
     }));
+
+  if (targets.length === 0) {
+    logger.warn(`Subagent '${name}' is not installed in the specified scope`);
+    return;
+  }
 
   spinner.start(`Removing ${name}...`);
 
@@ -304,9 +271,6 @@ async function removeSubagent(name: string, options: RemoveOptions): Promise<voi
     targets,
     { yes: options.yes },
   );
-
-  // Update lock file
-  await lockManager.removeResource(name);
 
   spinner.succeed(`Removed ${name}`);
   logger.success('Subagent removed successfully!');

@@ -8,13 +8,11 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { SubagentsHandler } from './subagents-handler.js';
 import { AgentRegistry } from './agent-registry.js';
-import { LockManager } from './lock-manager.js';
 import type { ParsedSource, Resource } from '@coding-agent-fabric/common';
 
 describe('SubagentsHandler', () => {
   let handler: SubagentsHandler;
   let agentRegistry: AgentRegistry;
-  let lockManager: LockManager;
   let testDir: string;
   let projectRoot: string;
 
@@ -29,10 +27,8 @@ describe('SubagentsHandler', () => {
 
     // Initialize components
     agentRegistry = new AgentRegistry(projectRoot);
-    lockManager = new LockManager({ projectRoot });
     handler = new SubagentsHandler({
       agentRegistry,
-      lockManager,
       projectRoot,
     });
   });

@@ -3,13 +3,8 @@
  */
 
 import { Command } from 'commander';
-import { AgentRegistry, LockManager, SourceParser, SkillsHandler } from '@coding-agent-fabric/core';
-import {
-  parseSource,
-  type NamingStrategy,
-  type AgentType,
-  type Scope,
-} from '@coding-agent-fabric/common';
+import { AgentRegistry, SkillsHandler } from '@coding-agent-fabric/core';
+import { type NamingStrategy, type AgentType, type Scope } from '@coding-agent-fabric/common';
 import type { AddOptions, ListOptions, RemoveOptions, UpdateOptions } from '../types/index.js';
 import { logger } from '../utils/logger.js';
 import { spinner } from '../utils/spinner.js';
@@ -20,7 +15,7 @@ import {
   selectMode,
   selectResources,
 } from '../utils/prompts.js';
-import { join } from 'node:path';
+import { pnpmAdd, resolvePackagePath } from '../utils/pnpm.js';
 import { cwd } from 'node:process';
 
 /**
@@ -108,38 +103,32 @@ async function addSkills(source: string, options: AddOptions): Promise<void> {
 
   // Initialize components
   const agentRegistry = new AgentRegistry(projectRoot);
-  const lockManager = new LockManager({ projectRoot });
-  const sourceParser = new SourceParser();
   const skillsHandler = new SkillsHandler({
     agentRegistry,
-    lockManager,
     projectRoot,
   });
 
-  // Parse source
-  spinner.start('Parsing source...');
-  const parsedSource = parseSource(source);
-  spinner.succeed(`Source parsed: ${parsedSource.type}`);
+  // Use pnpm to add the package
+  let packagePath: string;
+  let packageName: string;
 
-  // Download and discover resources
-  spinner.start('Discovering skills...');
-  let downloadedPath = parsedSource.localPath;
-
-  if (parsedSource.type !== 'local') {
-    const result = await sourceParser.parse(source, {
-      targetDir: join(projectRoot, '.coding-agent-fabric', 'cache'),
-    });
-    downloadedPath = result.localDir;
+  if (source.startsWith('.') || source.startsWith('/') || source.startsWith('~')) {
+    // Local source
+    packageName = await pnpmAdd(source, projectRoot);
+    packagePath = resolvePackagePath(packageName, projectRoot);
+  } else {
+    // Remote source (npm or git)
+    packageName = await pnpmAdd(source, projectRoot);
+    packagePath = resolvePackagePath(packageName, projectRoot);
   }
 
-  const resources = await skillsHandler.discover(
-    { ...parsedSource, localPath: downloadedPath },
-    {
-      namingStrategy: options.namingStrategy as NamingStrategy,
-      categories: options.categories,
-    },
-  );
-  spinner.succeed(`Found ${resources.length} skill(s)`);
+  // Discover resources from the installed package
+  spinner.start('Discovering skills...');
+  const resources = await skillsHandler.discoverFromPath(packagePath, {
+    namingStrategy: options.namingStrategy as NamingStrategy,
+    categories: options.categories,
+  });
+  spinner.succeed(`Found ${resources.length} skill(s) in ${packageName}`);
 
   if (resources.length === 0) {
     logger.warn('No skills found in source');
@@ -204,29 +193,6 @@ async function addSkills(source: string, options: AddOptions): Promise<void> {
       yes: options.yes,
     });
 
-    // Update lock file
-    await lockManager.addResource({
-      type: 'skills',
-      handler: 'built-in',
-      name: resource.name,
-      version: resource.version,
-      source,
-      sourceType: parsedSource.type,
-      sourceUrl: parsedSource.url,
-      installedAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      installedFor: targets.map((t) => ({
-        agent: t.agent,
-        scope: t.scope,
-        path: skillsHandler.getInstallPath(t.agent, t.scope),
-      })),
-      originalName: (resource.metadata.originalName as string) || resource.name,
-      installedName: resource.name,
-      sourcePath: (resource.metadata.sourcePath as string) || '',
-      categories: (resource.metadata.categories as string[]) || [],
-      namingStrategy: options.namingStrategy as NamingStrategy,
-    });
-
     spinner.succeed(`Installed ${resource.name}`);
   }
 
@@ -240,10 +206,8 @@ async function listSkills(options: ListOptions): Promise<void> {
   const projectRoot = cwd();
 
   const agentRegistry = new AgentRegistry(projectRoot);
-  const lockManager = new LockManager({ projectRoot });
   const skillsHandler = new SkillsHandler({
     agentRegistry,
-    lockManager,
     projectRoot,
   });
 
@@ -258,7 +222,9 @@ async function listSkills(options: ListOptions): Promise<void> {
   logger.header('Installed Skills');
   for (const skill of skills) {
     logger.log(`\n  ${skill.name}${skill.version ? ` (v${skill.version})` : ''}`);
-    logger.log(`    Source: ${skill.source}`);
+    if (skill.source) {
+      logger.log(`    Source: ${skill.source}`);
+    }
     logger.log(`    Installed for: ${skill.installedFor.map((i) => i.agent).join(', ')}`);
   }
 }
@@ -270,17 +236,16 @@ async function removeSkill(name: string, options: RemoveOptions): Promise<void> 
   const projectRoot = cwd();
 
   const agentRegistry = new AgentRegistry(projectRoot);
-  const lockManager = new LockManager({ projectRoot });
   const skillsHandler = new SkillsHandler({
     agentRegistry,
-    lockManager,
     projectRoot,
   });
 
-  // Load lock file to get resource info
-  const resourceEntry = await lockManager.getResource(name);
+  // Find the skill in installed resources
+  const skills = await skillsHandler.list('both');
+  const skill = skills.find((s) => s.name === name);
 
-  if (!resourceEntry || resourceEntry.type !== 'skills') {
+  if (!skill) {
     logger.error(`Skill '${name}' not found`);
     process.exit(1);
   }
@@ -294,15 +259,20 @@ async function removeSkill(name: string, options: RemoveOptions): Promise<void> 
     }
   }
 
-  // Remove from targets
+  // Determine targets to remove from
   const scope: 'global' | 'project' | 'both' = options.global ? 'global' : options.scope || 'both';
-  const targets = resourceEntry.installedFor
-    .filter((install: { scope: string }) => scope === 'both' || install.scope === scope)
-    .map((install: { agent: string; scope: string }) => ({
+  const targets = skill.installedFor
+    .filter((install) => scope === 'both' || install.scope === scope)
+    .map((install) => ({
       agent: install.agent as AgentType,
       scope: install.scope as Scope,
       mode: 'copy' as const,
     }));
+
+  if (targets.length === 0) {
+    logger.warn(`Skill '${name}' is not installed in the specified scope`);
+    return;
+  }
 
   spinner.start(`Removing ${name}...`);
 
@@ -317,9 +287,6 @@ async function removeSkill(name: string, options: RemoveOptions): Promise<void> 
     targets,
     { yes: options.yes },
   );
-
-  // Update lock file
-  await lockManager.removeResource(name);
 
   spinner.succeed(`Removed ${name}`);
   logger.success('Skill removed successfully!');

@@ -8,13 +8,11 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { SkillsHandler } from './skills-handler.js';
 import { AgentRegistry } from './agent-registry.js';
-import { LockManager } from './lock-manager.js';
 import type { ParsedSource, Resource } from '@coding-agent-fabric/common';
 
 describe('SkillsHandler', () => {
   let handler: SkillsHandler;
   let agentRegistry: AgentRegistry;
-  let lockManager: LockManager;
   let testDir: string;
   let projectRoot: string;
 
@@ -29,10 +27,8 @@ describe('SkillsHandler', () => {
 
     // Initialize components
     agentRegistry = new AgentRegistry(projectRoot);
-    lockManager = new LockManager({ projectRoot });
     handler = new SkillsHandler({
       agentRegistry,
-      lockManager,
       projectRoot,
     });
   });

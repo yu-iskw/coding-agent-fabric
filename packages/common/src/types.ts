@@ -206,104 +206,11 @@ export interface AgentConfig {
 export type PluginLocation = 'bundled' | 'project' | 'global';
 
 /**
- * Plugin lock entry
+ * Plugin lock entry (kept for plugin compatibility)
  */
 export interface PluginLockEntry {
   version: string;
   installedAt: string;
   enabled: boolean;
   location: PluginLocation;
-}
-
-/**
- * Base lock entry
- */
-export interface BaseLockEntry {
-  type: string; // Discriminator: "skills", "hooks", "subagents", "mcp", etc.
-  handler: string; // "built-in" or plugin ID (e.g., "@coding-agent-fabric/plugin-claude-code-hooks")
-  name: string;
-  version?: string;
-  source: string; // "owner/repo", "npm:package", "local:./path" - pnpm specifier
-  sourceType: SourceType;
-  sourceUrl: string;
-  installedAt: string;
-  updatedAt: string;
-  installedFor: {
-    agent: AgentType;
-    scope: Scope;
-    path: string;
-  }[];
-  history?: {
-    version?: string;
-    updatedAt: string;
-    source: string;
-    metadata?: Record<string, unknown>;
-  }[];
-}
-
-/**
- * Skill lock entry
- */
-export interface SkillLockEntry extends BaseLockEntry {
-  type: 'skills';
-  handler: 'built-in'; // Skills are core
-  originalName: string; // Original name from SKILL.md
-  installedName: string; // Name after conflict resolution
-  sourcePath: string; // Path in source repo (e.g., "skills/frontend/react/patterns")
-  categories: string[]; // Extracted from source path
-  namingStrategy?: NamingStrategy;
-  skillFolderHash?: string; // GitHub tree SHA for update detection
-}
-
-/**
- * Subagent lock entry
- */
-export interface SubagentLockEntry extends BaseLockEntry {
-  type: 'subagents';
-  handler: 'built-in'; // Subagents are core
-  model?: string; // Model identifier (e.g., "claude-sonnet-4")
-  format: 'claude-code-yaml' | 'coding-agent-fabric-json'; // Source format
-  configHash: string;
-}
-
-/**
- * Plugin resource lock entry (for hooks, MCP, etc.)
- */
-export interface PluginResourceLockEntry extends BaseLockEntry {
-  type: string; // Resource type (e.g., "hooks", "mcp")
-  handler: string; // Plugin ID (e.g., "@coding-agent-fabric/plugin-claude-code-hooks")
-  metadata: Record<string, unknown>; // Plugin-specific metadata
-}
-
-/**
- * Union type for all lock entry types
- */
-export type ResourceLockEntry = SkillLockEntry | SubagentLockEntry | PluginResourceLockEntry;
-
-/**
- * Lock file configuration
- */
-export interface LockFileConfig {
-  preferredAgents: AgentType[]; // Default agents for new resources
-  defaultScope: Scope;
-  historyLimit?: number; // Max history entries per resource (default: 10)
-  updateStrategy?: UpdateStrategy; // Default: parallel
-  namingStrategy?: NamingStrategy; // Default naming strategy for skills
-}
-
-/**
- * Lock file structure (version 2)
- */
-export interface LockFile {
-  version: 2;
-  lastUpdated: string; // ISO 8601 timestamp
-
-  // Configuration
-  config: LockFileConfig;
-
-  // Installed plugins
-  plugins: Record<string, PluginLockEntry>;
-
-  // Installed resources
-  resources: Record<string, ResourceLockEntry>;
 }

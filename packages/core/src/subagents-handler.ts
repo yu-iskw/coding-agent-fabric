@@ -25,11 +25,9 @@ import {
 } from '@coding-agent-fabric/common';
 import { ResourceHandler } from '@coding-agent-fabric/plugin-api';
 import { AgentRegistry } from './agent-registry.js';
-import { LockManager } from './lock-manager.js';
 
 export interface SubagentsHandlerOptions {
   agentRegistry: AgentRegistry;
-  lockManager: LockManager;
   projectRoot: string;
   globalRoot?: string;
 }
@@ -68,13 +66,11 @@ export class SubagentsHandler implements ResourceHandler {
   readonly isCore = true;
 
   private agentRegistry: AgentRegistry;
-  private lockManager: LockManager;
   private projectRoot: string;
   private globalRoot?: string;
 
   constructor(options: SubagentsHandlerOptions) {
     this.agentRegistry = options.agentRegistry;
-    this.lockManager = options.lockManager;
     this.projectRoot = options.projectRoot;
     this.globalRoot = options.globalRoot;
   }
@@ -169,7 +165,7 @@ export class SubagentsHandler implements ResourceHandler {
       const configContent = await this.convertFormat(resource, sourceFormat, targetFormat);
 
       await writeFile(targetPath, configContent, 'utf-8');
-      console.log(`Installed subagent ${resource.name} to ${targetPath}`);
+      console.log('Installed subagent %s to %s', resource.name, targetPath);
     }
   }
 
@@ -191,50 +187,87 @@ export class SubagentsHandler implements ResourceHandler {
         if (!options.force) {
           throw new Error(`Subagent ${resource.name} not found at ${targetPath}`);
         }
-        console.warn(`Subagent ${resource.name} not found at ${targetPath}`);
+        console.warn('Subagent %s not found at %s', resource.name, targetPath);
         continue;
       }
 
       // Remove the subagent file
       await unlink(targetPath);
-      console.log(`Removed subagent ${resource.name} from ${targetPath}`);
+      console.log('Removed subagent %s from %s', resource.name, targetPath);
     }
   }
 
   /**
-   * List installed subagents
+   * List installed subagents by scanning agent directories
    */
   async list(scope: 'global' | 'project' | 'both'): Promise<InstalledResource[]> {
-    const lockFile = await this.lockManager.load();
-    const resources: InstalledResource[] = [];
+    const resourcesMap: Map<string, InstalledResource> = new Map();
+    const agents = this.getSupportedAgents();
+    const scopes: Scope[] = scope === 'both' ? ['project', 'global'] : [scope];
 
-    // Filter resources by type and scope
-    for (const entry of Object.values(lockFile.resources)) {
-      if (entry.type !== 'subagents') continue;
+    for (const agent of agents) {
+      for (const s of scopes) {
+        try {
+          const installPath = this.getInstallPath(agent, s);
+          if (!existsSync(installPath)) continue;
 
-      // Check scope
-      const matchesScope =
-        scope === 'both' || entry.installedFor.some((install) => install.scope === scope);
+          const entries = await readdir(installPath, { withFileTypes: true });
+          for (const entry of entries) {
+            // Subagents are usually single files (json or yaml)
+            if (entry.isFile()) {
+              const configPath = join(installPath, entry.name);
+              const ext = extname(configPath);
+              if (
+                SUBAGENT_FILE_NAMES.includes(entry.name) ||
+                ['.json', '.yaml', '.yml'].includes(ext)
+              ) {
+                const format = ext === '.json' ? 'coding-agent-fabric-json' : 'claude-code-yaml';
 
-      if (matchesScope) {
-        resources.push({
-          type: entry.type,
-          name: entry.name,
-          version: entry.version,
-          description: '', // TODO: Load from installed file
-          metadata: {},
-          files: [], // TODO: Load from installed file
-          source: entry.source,
-          sourceType: entry.sourceType,
-          sourceUrl: entry.sourceUrl,
-          installedAt: entry.installedAt,
-          updatedAt: entry.updatedAt,
-          installedFor: entry.installedFor,
-        });
+                try {
+                  const config = await this.parseSubagentConfig(configPath, format);
+                  const resourceName = config.name;
+                  let resource = resourcesMap.get(resourceName);
+
+                  if (!resource) {
+                    resource = {
+                      type: this.type,
+                      name: resourceName,
+                      version: config.version,
+                      description: config.description || '',
+                      metadata: {
+                        model: config.model,
+                        format,
+                      },
+                      files: [],
+                      source: '', // Hard to infer for single files unless we track it
+                      sourceType: 'local',
+                      sourceUrl: '',
+                      installedAt: '',
+                      updatedAt: '',
+                      installedFor: [],
+                    };
+                    resourcesMap.set(resourceName, resource);
+                  }
+
+                  resource.installedFor.push({
+                    agent,
+                    scope: s,
+                    path: configPath,
+                  });
+                } catch (_e) {
+                  // Skip invalid configs
+                  continue;
+                }
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Failed to list subagents for agent %s in scope %s:', agent, s, error);
+        }
       }
     }
 
-    return resources;
+    return Array.from(resourcesMap.values());
   }
 
   /**

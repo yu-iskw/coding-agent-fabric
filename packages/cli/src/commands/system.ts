@@ -3,7 +3,7 @@
  */
 
 import { Command } from 'commander';
-import { AgentRegistry, LockManager } from '@coding-agent-fabric/core';
+import { AgentRegistry } from '@coding-agent-fabric/core';
 import { logger } from '../utils/logger.js';
 import { spinner } from '../utils/spinner.js';
 import { cwd } from 'node:process';
@@ -56,23 +56,6 @@ async function runDoctor(): Promise<void> {
     }
   }
 
-  // Check lock file
-  spinner.start('Checking lock file...');
-  const lockManager = new LockManager({ projectRoot });
-  if (lockManager.exists()) {
-    spinner.succeed(`Lock file found at ${lockManager.getPath()}`);
-    try {
-      const lockFile = await lockManager.load();
-      logger.log(`  Version: ${lockFile.version}`);
-      logger.log(`  Last updated: ${lockFile.lastUpdated}`);
-      logger.log(`  Resources: ${Object.keys(lockFile.resources).length}`);
-    } catch (error) {
-      spinner.fail(`Failed to load lock file: ${error instanceof Error ? error.message : error}`);
-    }
-  } else {
-    spinner.warn('No lock file found in current project');
-  }
-
   // Check directories
   spinner.start('Checking configuration...');
   const configDir = join(projectRoot, '.coding-agent-fabric');
@@ -80,6 +63,15 @@ async function runDoctor(): Promise<void> {
     spinner.succeed(`Configuration directory found at ${configDir}`);
   } else {
     spinner.info('No configuration directory found (will be created on first use)');
+  }
+
+  // Check node_modules for resources
+  spinner.start('Checking for installed resource packages...');
+  const pkgJsonPath = join(projectRoot, 'package.json');
+  if (existsSync(pkgJsonPath)) {
+    spinner.succeed('package.json found');
+  } else {
+    spinner.warn('No package.json found in current directory');
   }
 
   logger.success('\nDoctor check complete!');
@@ -90,7 +82,7 @@ async function runDoctor(): Promise<void> {
  */
 async function runCheck(): Promise<void> {
   logger.info('Update checking not yet fully implemented');
-  // TODO: Implement update checking logic using SourceParser and LockManager
+  // TODO: Implement update checking logic using pnpm
 }
 
 /**
@@ -98,5 +90,5 @@ async function runCheck(): Promise<void> {
  */
 async function runUpdate(): Promise<void> {
   logger.info('Resource updating not yet fully implemented');
-  // TODO: Implement actual update logic
+  // TODO: Implement actual update logic using pnpm update
 }

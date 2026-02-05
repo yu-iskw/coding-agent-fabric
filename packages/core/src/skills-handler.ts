@@ -2,7 +2,7 @@
  * SkillsHandler - Manages skills resources
  */
 
-import { readFile, writeFile, mkdir, readdir, stat, symlink, rm } from 'node:fs/promises';
+import { readFile, writeFile, mkdir, readdir, stat, symlink, rm, readlink } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join, basename, dirname, relative, sep } from 'node:path';
 import type {
@@ -18,6 +18,7 @@ import type {
   Scope,
   ResourceFile,
   NamingStrategy,
+  SourceType,
 } from '@coding-agent-fabric/common';
 import {
   SKILL_FILE_NAME,
@@ -27,11 +28,9 @@ import {
 } from '@coding-agent-fabric/common';
 import { ResourceHandler } from '@coding-agent-fabric/plugin-api';
 import { AgentRegistry } from './agent-registry.js';
-import { LockManager } from './lock-manager.js';
 
 export interface SkillsHandlerOptions {
   agentRegistry: AgentRegistry;
-  lockManager: LockManager;
   projectRoot: string;
   globalRoot?: string;
 }
@@ -46,13 +45,11 @@ export class SkillsHandler implements ResourceHandler {
   readonly isCore = true;
 
   private agentRegistry: AgentRegistry;
-  private lockManager: LockManager;
   private projectRoot: string;
   private globalRoot?: string;
 
   constructor(options: SkillsHandlerOptions) {
     this.agentRegistry = options.agentRegistry;
-    this.lockManager = options.lockManager;
     this.projectRoot = options.projectRoot;
     this.globalRoot = options.globalRoot;
   }
@@ -176,7 +173,7 @@ export class SkillsHandler implements ResourceHandler {
         }
       }
 
-      console.log(`Installed skill ${resource.name} to ${targetPath}`);
+      console.log('Installed skill %s to %s', resource.name, targetPath);
     }
   }
 
@@ -194,50 +191,102 @@ export class SkillsHandler implements ResourceHandler {
       const targetPath = join(installPath, sanitizeFileName(resource.name));
 
       if (!existsSync(targetPath)) {
-        console.warn(`Skill ${resource.name} not found at ${targetPath}`);
+        console.warn('Skill %s not found at %s', resource.name, targetPath);
         continue;
       }
 
       // Remove the skill directory
       await rm(targetPath, { recursive: true, force: true });
-      console.log(`Removed skill ${resource.name} from ${targetPath}`);
+      console.log('Removed skill %s from %s', resource.name, targetPath);
     }
   }
 
   /**
-   * List installed skills
+   * List installed skills by scanning agent directories
    */
   async list(scope: 'global' | 'project' | 'both'): Promise<InstalledResource[]> {
-    const lockFile = await this.lockManager.load();
-    const resources: InstalledResource[] = [];
+    const resourcesMap: Map<string, InstalledResource> = new Map();
+    const agents = this.getSupportedAgents();
+    const scopes: Scope[] = scope === 'both' ? ['project', 'global'] : [scope];
 
-    // Filter resources by type and scope
-    for (const entry of Object.values(lockFile.resources)) {
-      if (entry.type !== 'skills') continue;
+    for (const agent of agents) {
+      for (const s of scopes) {
+        try {
+          const installPath = this.getInstallPath(agent, s);
+          if (!existsSync(installPath)) continue;
 
-      // Check scope
-      const matchesScope =
-        scope === 'both' || entry.installedFor.some((install) => install.scope === scope);
+          const entries = await readdir(installPath, { withFileTypes: true });
+          for (const entry of entries) {
+            if (entry.isDirectory() || entry.isSymbolicLink()) {
+              const skillDir = join(installPath, entry.name);
+              const skillFilePath = join(skillDir, SKILL_FILE_NAME);
 
-      if (matchesScope) {
-        resources.push({
-          type: entry.type,
-          name: entry.name,
-          version: entry.version,
-          description: '', // TODO: Load from installed file
-          metadata: {},
-          files: [], // TODO: Load from installed directory
-          source: entry.source,
-          sourceType: entry.sourceType,
-          sourceUrl: entry.sourceUrl,
-          installedAt: entry.installedAt,
-          updatedAt: entry.updatedAt,
-          installedFor: entry.installedFor,
-        });
+              if (existsSync(skillFilePath)) {
+                const content = await readFile(skillFilePath, 'utf-8');
+                const metadata = this.parseSkillMetadata(content);
+
+                const resourceName = entry.name;
+                let resource = resourcesMap.get(resourceName);
+
+                if (!resource) {
+                  // Try to infer source if it's a symlink
+                  let source = '';
+                  let sourceType: SourceType = 'local';
+                  if (entry.isSymbolicLink()) {
+                    try {
+                      const linkTarget = await readlink(skillDir);
+                      if (linkTarget.includes('node_modules')) {
+                        sourceType = 'npm';
+                        // Extract package name from path
+                        const parts = linkTarget.split(sep);
+                        const nmIndex = parts.indexOf('node_modules');
+                        if (nmIndex !== -1 && nmIndex + 1 < parts.length) {
+                          source = parts[nmIndex + 1];
+                          if (source.startsWith('@') && nmIndex + 2 < parts.length) {
+                            source += '/' + parts[nmIndex + 2];
+                          }
+                        }
+                      }
+                    } catch (_e) {
+                      /* ignore */
+                    }
+                  }
+
+                  resource = {
+                    type: this.type,
+                    name: resourceName,
+                    version: metadata.version,
+                    description: metadata.description || '',
+                    metadata: {
+                      originalName: metadata.name || resourceName,
+                    },
+                    files: [],
+                    source,
+                    sourceType,
+                    sourceUrl: '',
+                    installedAt: '',
+                    updatedAt: '',
+                    installedFor: [],
+                  };
+                  resourcesMap.set(resourceName, resource);
+                }
+
+                resource.installedFor.push({
+                  agent,
+                  scope: s,
+                  path: skillDir,
+                });
+              }
+            }
+          }
+        } catch (error) {
+          // Log error but continue with other agents/scopes
+          console.error('Failed to list skills for agent %s in scope %s:', agent, s, error);
+        }
       }
     }
 
-    return resources;
+    return Array.from(resourcesMap.values());
   }
 
   /**

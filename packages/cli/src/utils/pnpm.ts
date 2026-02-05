@@ -2,7 +2,6 @@ import { exec } from 'node:child_process';
 import { promisify } from 'node:util';
 import { join } from 'node:path';
 import { existsSync, readFileSync } from 'node:fs';
-import { logger } from './logger.js';
 import { spinner } from './spinner.js';
 
 const execPromise = promisify(exec);
@@ -14,7 +13,7 @@ export async function pnpmAdd(source: string, projectRoot: string): Promise<stri
   spinner.start(`Running pnpm add ${source}...`);
   try {
     // Run pnpm add. We use --save-dev as these are tools/resources
-    const { stdout } = await execPromise(`pnpm add -D ${source}`, { cwd: projectRoot });
+    await execPromise(`pnpm add -D ${source}`, { cwd: projectRoot });
     spinner.succeed(`pnpm add successful`);
 
     // Extract package name from pnpm output or package.json
@@ -40,7 +39,10 @@ export async function pnpmAdd(source: string, projectRoot: string): Promise<stri
 /**
  * Infer package name from source or package.json
  */
-function inferPackageName(source: string, pkgJson: any): string | null {
+function inferPackageName(
+  source: string,
+  pkgJson: { devDependencies?: Record<string, string>; dependencies?: Record<string, string> },
+): string | null {
   // If source is already a package name (e.g. "@scope/pkg" or "pkg")
   if (!source.includes('/') || (source.startsWith('@') && source.split('/').length === 2)) {
     return source.split('@')[0] || source; // Handle version tags

@@ -2,7 +2,7 @@
  * Utility functions for coding-agent-fabric
  */
 
-import { sep, join, resolve, relative, isAbsolute } from 'node:path';
+import { sep, resolve, relative, isAbsolute } from 'node:path';
 import { ParsedSource, AgentType } from './types.js';
 
 /**

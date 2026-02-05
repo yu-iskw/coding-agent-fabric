@@ -1,7 +1,7 @@
 {
   "name": "@coding-agent-fabric/core",
   "version": "0.1.0",
-  "description": "Core logic for coding-agent-fabric: SourceParser, LockManager, AgentRegistry",
+  "description": "Core logic for coding-agent-fabric: AgentRegistry, SkillsHandler, SubagentsHandler",
   "keywords": [
     "coding-agent-fabric",
     "core",
