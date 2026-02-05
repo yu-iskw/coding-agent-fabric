@@ -31,6 +31,7 @@
 The AI coding agent ecosystem (Claude Code, Cursor, Gemini CLI, Codex, and 35+ others) is rapidly evolving with multiple resource types:
 
 - **Skills** - Reusable instruction sets (e.g., commit message guidelines, PR templates)
+- **Rules** - Proactive, context-aware instructions (e.g., .cursorrules, .clauderules)
 - **Hooks** - Event-driven automation (e.g., pre-commit linters, post-install scripts)
 - **Subagents** - Specialized AI agents for specific tasks (e.g., testing specialist, security auditor)
 - **MCP Servers** - Model Context Protocol integrations (e.g., database access, API connectors)
@@ -77,7 +78,7 @@ It provides:
 
 #### Phase 1 (MVP - 3 months)
 
-- [x] Support **2 core resource types**: Skills, Subagents
+- [x] Support **3 core resource types**: Skills, Subagents, Rules
 - [x] Plugin system infrastructure for agent-specific resource types
 - [ ] **Bundled first-party plugins**: Claude Code Hooks, Cursor Hooks, MCP Servers
 - [x] Unified CLI with `coding-agent-fabric <resource> <action>` syntax
@@ -138,6 +139,7 @@ graph TD
         subgraph built_in [Built-In Handlers (Core)]
             SkillsHandler["Skills Handler"]
             SubagentsHandler["Subagents Handler"]
+            RulesHandler["Rules Handler"]
         end
 
         subgraph plugins [Plugins (Bundled & Third-Party)]
@@ -169,7 +171,7 @@ graph TD
 
 **Key Architectural Decisions:**
 
-1. **Core Handlers:** Skills and subagents are built into coding-agent-fabric (universal formats)
+1. **Core Handlers:** Skills, subagents, and rules are built into coding-agent-fabric (universal formats)
 2. **Bundled Plugins:** Hooks and MCP plugins ship with coding-agent-fabric by default (agent-specific)
 3. **Plugin Loading:** `PluginManager` checks `.coding-agent-fabric/plugins/` first, fallback to `~/.coding-agent-fabric/plugins/`
 4. **Audit Logging:** Every critical operation is tracked by `AuditLogger` for transparency and security.
@@ -198,7 +200,7 @@ coding-agent-fabric/
 
 1. **Core vs. Plugin Separation**
 
-- **Core Resources:** Skills and subagents (universal formats, cross-agent compatible)
+- **Core Resources:** Skills, subagents, and rules (universal formats, cross-agent compatible)
 - **Plugin Resources:** Hooks, MCP, and custom types (agent-specific formats)
 - Core handles common operations; plugins handle agent-specific complexity
 
@@ -264,6 +266,11 @@ coding-agent-fabric skills find typescript
 coding-agent-fabric subagents add openai/code-reviewer
 coding-agent-fabric subagents list
 coding-agent-fabric subagents remove code-reviewer
+
+# Rules (core feature)
+coding-agent-fabric rules add my-org/react-rules
+coding-agent-fabric rules list
+coding-agent-fabric rules remove react-rules
 ```
 
 #### Plugin Commands (Bundled with coding-agent-fabric)
@@ -437,8 +444,8 @@ All resource types implement this interface (whether built-in or plugin):
 ```typescript
 interface ResourceHandler {
   // Metadata
-  readonly type: string; // "skills", "hooks", "subagents", "mcp"
-  readonly displayName: string; // "Skills", "Hooks", "Subagents", "MCP Servers"
+  readonly type: string; // "skills", "hooks", "subagents", "mcp", "rules"
+  readonly displayName: string; // "Skills", "Hooks", "Subagents", "MCP Servers", "Rules"
   readonly description: string;
   readonly isCore: boolean; // true for built-in, false for plugins
 
@@ -494,7 +501,7 @@ interface ValidationResult {
 
 ### 2. Built-In Resource Handlers
 
-coding-agent-fabric includes two built-in resource handlers that work across all agents:
+coding-agent-fabric includes three built-in resource handlers that work across all agents:
 
 #### Skills Handler
 
@@ -573,6 +580,37 @@ class SubagentsHandler implements ResourceHandler {
 - Supports multiple subagent formats (Claude Code YAML, coding-agent-fabric JSON)
 - Automatic format conversion based on target agent
 - Validates subagent configuration before installation
+
+#### Rules Handler
+
+```typescript
+class RulesHandler implements ResourceHandler {
+  type = 'rules';
+  displayName = 'Rules';
+  isCore = true;
+
+  async discover(source: ParsedSource): Promise<Resource[]> {
+    // 1. Recursively scan for *.md and *.mdc files
+    // 2. Parse frontmatter for name, description, and globs
+    // 3. Extract categories from source directory path
+    // 4. Collect file content
+  }
+
+  async install(rule: Resource, targets: InstallTarget[], options: InstallOptions): Promise<void> {
+    // 1. Validate rule
+    // 2. For each agent target:
+    //    - Determine file extension (.mdc for Cursor, .md for others)
+    //    - Write rule file to agent's rules path
+    // 3. Audit log the installation success
+  }
+}
+```
+
+**Key Features:**
+
+- Native support for Cursor `.mdc` format
+- Cross-agent rule distribution
+- Glob-based context steering
 
 ### 3. Plugin Resource Handlers (Bundled)
 
@@ -1272,7 +1310,7 @@ coding-agent-fabric hooks add your-org/your-repo
 ### Phase 1: MVP Core (Achieved)
 
 - [x] Functional CLI with core resource management
-- [x] Unified interface for Skills and Subagents
+- [x] Unified interface for Skills, Subagents, and Rules
 - [x] Plugin infrastructure supporting agent-specific extensions
 - [x] Robust lock file system for cross-agent synchronization
 
@@ -1397,4 +1435,28 @@ mcp/
   },
   "npmPackage": "@modelcontextprotocol/server-sqlite"
 }
+```
+
+### E. Rules
+
+**File Structure:**
+
+```text
+rules/
+  my-rule/
+    rule.md         # Or rule.mdc
+```
+
+**Rule Format:**
+
+```markdown
+---
+name: my-rule
+description: What this rule does
+globs: ['src/**/*.ts']
+---
+
+# My Rule
+
+Instructions for the agent...
 ```

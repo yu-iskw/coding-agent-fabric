@@ -14,6 +14,7 @@ Based on analysis of hook specifications across different agents (Claude Code, C
 
 - ✅ **Skills** - Consistent format across all agents (SKILL.md with YAML frontmatter)
 - ✅ **Subagents** - Emerging standard, supported by Claude Code and growing
+- ✅ **Rules** - Proactive context steering (.cursorrules, .clauderules)
 
 **Plugins (Agent-Specific):**
 
@@ -186,6 +187,22 @@ Analysis of hook documentation reveals **fundamentally incompatible formats**:
 - Install to agent-specific directories (e.g., `.claude/agents/`)
 - Track versions and updates
 - Validate configuration (required fields, model names)
+
+#### 3. Rules
+
+**Rationale:**
+
+- Critical for agent steering and context management
+- Consistent markdown-based format across major agents (Cursor, Claude Code, Codex)
+- High demand for shared "best practice" rulesets
+- Simple file-based distribution (like skills)
+
+**coding-agent-fabric Responsibility:**
+
+- Discover `*.md` and `*.mdc` files
+- Extract glob patterns from frontmatter
+- Map to agent-specific extensions (.mdc for Cursor, .md for others)
+- Handle project and global scoping
 
 **Subagent Format (Proposed Standard):**
 

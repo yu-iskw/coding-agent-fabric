@@ -15,6 +15,10 @@ export type { SkillsHandlerOptions } from './skills-handler.js';
 export { SubagentsHandler } from './subagents-handler.js';
 export type { SubagentsHandlerOptions } from './subagents-handler.js';
 
+// Export RulesHandler
+export { RulesHandler } from './rules-handler.js';
+export type { RulesHandlerOptions } from './rules-handler.js';
+
 // Export PluginManager
 export { PluginManager } from './plugin-manager.js';
 

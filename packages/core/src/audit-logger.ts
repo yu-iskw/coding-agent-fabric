@@ -3,8 +3,8 @@
  */
 
 import { userInfo, homedir } from 'node:os';
-import { relative, isAbsolute, join, sep } from 'node:path';
-import type { AuditRecord, AuditOutcome } from '@coding-agent-fabric/common';
+import { relative, isAbsolute, join } from 'node:path';
+import type { AuditRecord } from '@coding-agent-fabric/common';
 
 /**
  * AuditLogger options
