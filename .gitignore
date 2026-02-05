@@ -147,3 +147,7 @@ TODO.md
 .claude/sessions/
 
 *.bak
+
+# coding-agent-fabric
+.coding-agent-fabric/
+!.coding-agent-fabric/lock.json

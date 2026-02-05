@@ -1,0 +1,44 @@
+{
+  "name": "@coding-agent-fabric/core",
+  "version": "0.1.0",
+  "description": "Core logic for coding-agent-fabric: AgentRegistry, SkillsHandler, SubagentsHandler",
+  "keywords": [
+    "coding-agent-fabric",
+    "core",
+    "lock-manager",
+    "source-parser",
+    "agent-registry"
+  ],
+  "license": "MIT",
+  "author": "",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@coding-agent-fabric/common": "workspace:*",
+    "@coding-agent-fabric/plugin-api": "workspace:*",
+    "tar": "^7.5.7"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.10",
+    "@types/tar": "^6.1.13",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
+  }
+}

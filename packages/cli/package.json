@@ -1,0 +1,50 @@
+{
+  "name": "@coding-agent-fabric/cli",
+  "version": "0.1.0",
+  "description": "Command-line interface for coding-agent-fabric",
+  "keywords": [
+    "coding-agent-fabric",
+    "cli",
+    "ai",
+    "agents",
+    "skills"
+  ],
+  "license": "MIT",
+  "author": "",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "caf": "./dist/cli.js",
+    "coding-agent-fabric": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist",
+    "dev": "node --loader ts-node/esm src/cli.ts"
+  },
+  "dependencies": {
+    "@coding-agent-fabric/common": "workspace:*",
+    "@coding-agent-fabric/core": "workspace:*",
+    "chalk": "^5.4.1",
+    "commander": "^12.1.0",
+    "inquirer": "^12.4.0",
+    "ora": "^8.1.2",
+    "simple-git": "^3.30.0"
+  },
+  "devDependencies": {
+    "@types/inquirer": "^9.0.7",
+    "@types/node": "^24.10.10",
+    "typescript": "^5.9.3"
+  }
+}

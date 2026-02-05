@@ -1,13 +1,30 @@
 {
-  "name": "@typescript-template/common",
-  "version": "1.0.0",
-  "description": "Common utilities and types for the TypeScript template project.",
-  "keywords": [],
-  "license": "ISC",
-  "author": "",
+  "name": "@coding-agent-fabric/common",
+  "version": "0.1.0",
+  "description": "Shared types, utilities, and constants for coding-agent-fabric",
+  "keywords": [
+    "coding-agent-fabric",
+    "types",
+    "utilities"
+  ],
+  "license": "Apache-2.0",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "tsc"
+    "build": "tsc",
+    "clean": "rm -rf dist",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@types/node": "^24.3.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
   }
 }

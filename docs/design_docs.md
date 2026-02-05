@@ -20,6 +20,7 @@
 6. [Implementation Plan](#implementation-plan)
 7. [Migration from Skills CLI](#migration-from-skills-cli)
 8. [Open Questions](#open-questions)
+9. [Success Metrics](#success-metrics)
 
 ---
 
@@ -76,16 +77,16 @@ It provides:
 
 #### Phase 1 (MVP - 3 months)
 
-- ✅ Support **2 core resource types**: Skills, Subagents
-- ✅ Plugin system infrastructure for agent-specific resource types
-- ✅ **Bundled first-party plugins**: Claude Code Hooks, Cursor Hooks, MCP Servers
-- ✅ Unified CLI with `coding-agent-fabric <resource> <action>` syntax
-- ✅ Install resources from GitHub repositories and local paths
-- ✅ Cross-agent compatibility for 39+ agents (leverage existing agent registry from skills CLI)
-- ✅ Single lock file (`.coding-agent-fabric/lock.json`) for version tracking
-- ✅ Project and global installation scopes (global precedence)
-- ✅ Basic update checking and installation
-- ✅ Nested directory support with configurable naming strategies
+- [x] Support **2 core resource types**: Skills, Subagents
+- [x] Plugin system infrastructure for agent-specific resource types
+- [ ] **Bundled first-party plugins**: Claude Code Hooks, Cursor Hooks, MCP Servers
+- [x] Unified CLI with `coding-agent-fabric <resource> <action>` syntax
+- [x] Install resources from GitHub repositories and local paths
+- [x] Cross-agent compatibility for 39+ agents (leverage existing agent registry from skills CLI)
+- [x] Single lock file (`.coding-agent-fabric/lock.json`) for version tracking
+- [x] Project and global installation scopes (global precedence)
+- [x] Basic update checking and installation
+- [x] Nested directory support with configurable naming strategies
 
 #### Phase 2 (Plugin Ecosystem - 2 months)
 
@@ -116,85 +117,63 @@ It provides:
 
 ### High-Level Architecture
 
-```text
-┌─────────────────────────────────────────────────────────────┐
-│                         coding-agent-fabric CLI                         │
-├─────────────────────────────────────────────────────────────┤
-│  Command Router (coding-agent-fabric <resource> <action>)               │
-│    ├── skills (core)                                         │
-│    ├── subagents (core)                                      │
-│    ├── hooks (via plugin) ─┐                                │
-│    ├── mcp (via plugin)    │  Require plugin installation   │
-│    └── plugin commands     ─┘                                │
-└─────────────────┬───────────────────────────────────────────┘
-                  │
-                  ▼
-┌─────────────────────────────────────────────────────────────┐
-│                     Core System Layer                       │
-├─────────────────────────────────────────────────────────────┤
-│  ┌────────────────┐  ┌────────────────┐  ┌───────────────┐ │
-│  │ Agent Registry │  │ Source Parser  │  │ Lock Manager  │ │
-│  │ (39+ agents)   │  │ (git, local,   │  │ (version 2)   │ │
-│  │                │  │  npm, http)    │  │               │ │
-│  └────────────────┘  └────────────────┘  └───────────────┘ │
-│                                                              │
-│  ┌────────────────┐  ┌────────────────┐  ┌───────────────┐ │
-│  │  Installer     │  │   Discovery    │  │Plugin Manager │ │
-│  │  (symlink,     │  │   (nested dirs,│  │ (load/register│ │
-│  │  copy,flatten) │  │  categories)   │  │  plugins)     │ │
-│  └────────────────┘  └────────────────┘  └───────────────┘ │
-│                                                              │
-│  ┌────────────────────────────────────────────────────────┐ │
-│  │  Naming Strategies                                     │ │
-│  │  (smart-disambiguation, full-path-prefix, etc.)        │ │
-│  └────────────────────────────────────────────────────────┘ │
-└─────────────────┬───────────────────────────────────────────┘
-                  │
-                  ▼
-┌─────────────────────────────────────────────────────────────┐
-│                  Resource Handler Layer                     │
-├─────────────────────────────────────────────────────────────┤
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │          Built-In Handlers (Core)                   │   │
-│  │  ┌──────────┐           ┌──────────┐               │   │
-│  │  │  Skills  │           │ Subagents│               │   │
-│  │  │ Handler  │           │ Handler  │               │   │
-│  │  └──────────┘           └──────────┘               │   │
-│  └─────────────────────────────────────────────────────┘   │
-│                                                              │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │    Bundled Plugins (Shipped with coding-agent-fabric)           │   │
-│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐ │   │
-│  │  │ Claude Code │  │   Cursor    │  │     MCP     │ │   │
-│  │  │    Hooks    │  │    Hooks    │  │   Servers   │ │   │
-│  │  └─────────────┘  └─────────────┘  └─────────────┘ │   │
-│  └─────────────────────────────────────────────────────┘   │
-│                                                              │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │       Third-Party Plugins (User-Installed)          │   │
-│  │  Loaded from: .coding-agent-fabric/plugins/ or ~/.coding-agent-fabric/plugins/│   │
-│  └─────────────────────────────────────────────────────┘   │
-└─────────────────┬───────────────────────────────────────────┘
-                  │
-                  ▼
-┌─────────────────────────────────────────────────────────────┐
-│                    Target Agents (39+)                      │
-├─────────────────────────────────────────────────────────────┤
-│  Claude Code │ Cursor │ Codex │ Gemini CLI │ ...           │
-│                                                              │
-│  Installation Paths (Project + Global with precedence):     │
-│    - .claude/skills/, .claude/agents/, .claude/settings.json│
-│    - .cursor/skills/, .cursor/hooks.json                    │
-│    - ~/.claude/skills/ (global fallback)                    │
-└─────────────────────────────────────────────────────────────┘
+```mermaid
+graph TD
+    CLI["coding-agent-fabric CLI"] --> Router["Command Router"]
+
+    subgraph core_layer [Core System Layer]
+        direction TB
+        AgentRegistry["Agent Registry (39+ agents)"]
+        SourceParser["Source Parser (git, local, npm, http)"]
+        LockManager["Lock Manager (version 2)"]
+        Installer["Installer (symlink, copy, flatten)"]
+        Discovery["Discovery (nested dirs, categories)"]
+        PluginManager["Plugin Manager (load/register)"]
+        AuditLogger["Audit Logger & Error Handling"]
+    end
+
+    Router --> core_layer
+
+    subgraph handler_layer [Resource Handler Layer]
+        subgraph built_in [Built-In Handlers (Core)]
+            SkillsHandler["Skills Handler"]
+            SubagentsHandler["Subagents Handler"]
+        end
+
+        subgraph plugins [Plugins (Bundled & Third-Party)]
+            ClaudeHooks["Claude Code Hooks"]
+            CursorHooks["Cursor Hooks"]
+            MCPServers["MCP Servers"]
+            ThirdParty["Third-Party Plugins"]
+        end
+    end
+
+    core_layer --> handler_layer
+
+    subgraph agents [Target Agents (39+)]
+        Claude["Claude Code"]
+        Cursor["Cursor"]
+        Windsurf["Windsurf"]
+        Others["..."]
+    end
+
+    handler_layer --> agents
 ```
+
+### Component Breakdown
+
+1. **CLI Layer:** Entry point for user commands.
+2. **Core Layer:** Essential services for agent management, source parsing, and version tracking.
+3. **Handler Layer:** Abstraction for resource types. Core handlers are built-in, while others are loaded via the `PluginManager`.
+4. **Agent Layer:** The target environment where resources are installed and executed.
 
 **Key Architectural Decisions:**
 
 1. **Core Handlers:** Skills and subagents are built into coding-agent-fabric (universal formats)
 2. **Bundled Plugins:** Hooks and MCP plugins ship with coding-agent-fabric by default (agent-specific)
-3. **Plugin Loading:** Check `.coding-agent-fabric/plugins/` first, fallback to `~/.coding-agent-fabric/plugins/`
-4. **Error on Missing Plugin:** If user tries `coding-agent-fabric hooks add` without plugin, show clear error with installation command
+3. **Plugin Loading:** `PluginManager` checks `.coding-agent-fabric/plugins/` first, fallback to `~/.coding-agent-fabric/plugins/`
+4. **Audit Logging:** Every critical operation is tracked by `AuditLogger` for transparency and security.
+5. **Error on Missing Plugin:** If user tries `coding-agent-fabric hooks add` without plugin, show clear error with installation command
 
 ### Repository Structure (pnpm Monorepo)
 
@@ -206,7 +185,7 @@ coding-agent-fabric/
   pnpm-workspace.yaml       # pnpm workspace configuration
   packages/
     cli/                    # CLI entry point and command routing
-    core/                   # Core logic (Agent Registry, Source Parser, Lock Manager)
+    core/                   # Core logic (Agent Registry, Source Parser, Lock Manager, Plugin Manager, Audit Logger)
     common/                 # Shared types, utilities, and constants
     plugin-api/             # Interface and base classes for plugins
     plugins/                # First-party bundled plugins
@@ -223,39 +202,46 @@ coding-agent-fabric/
 - **Plugin Resources:** Hooks, MCP, and custom types (agent-specific formats)
 - Core handles common operations; plugins handle agent-specific complexity
 
-2. **Resource Type Abstraction**
+1. **Resource Type Abstraction**
 
 - All resource types implement a common `ResourceHandler` interface
 - Core system treats all resources uniformly (install, remove, list, update)
 - Resource-specific logic isolated in handlers (built-in or plugin)
 - `isCore` flag distinguishes built-in from plugin handlers
 
-3. **Agent Abstraction**
+1. **Agent Abstraction**
 
 - Agents defined in a centralized registry (inherited from skills CLI)
 - Each agent specifies installation paths for each resource type
 - Dynamic agent detection (check for config files, binaries)
 - Agent-specific features handled by dedicated plugins
 
-4. **Source Abstraction**
+1. **Source Abstraction**
 
 - Resources can come from multiple sources (GitHub, GitLab, local paths, npm, HTTP)
 - `SourceParser` normalizes all sources into a common format
 - Extensible via provider system
 
-5. **Single Lock File**
+1. **Single Lock File**
 
 - `.coding-agent-fabric/lock.json` tracks all installed resources across all types
 - Includes plugin tracking section
 - Enables version tracking, update checking, and dependency resolution
 - Schema uses discriminated unions for type-specific metadata
 
-6. **Plugin Architecture**
+1. **Plugin Architecture**
 
+- `PluginManager` handles loading and lifecycle of plugins
 - Bundled plugins (hooks, MCP) ship with coding-agent-fabric
 - Third-party plugins loadable from `.coding-agent-fabric/plugins/` (project) or `~/.coding-agent-fabric/plugins/` (global)
 - Global precedence: project plugins checked first, fallback to global
 - Clear error messages when required plugin is missing
+
+1. **Auditing & Safety**
+
+- `AuditLogger` records every resource modification for security compliance
+- Static analysis for hooks and dangerous commands
+- User confirmation required for sensitive operations
 
 ---
 
@@ -454,7 +440,7 @@ interface ResourceHandler {
   readonly type: string; // "skills", "hooks", "subagents", "mcp"
   readonly displayName: string; // "Skills", "Hooks", "Subagents", "MCP Servers"
   readonly description: string;
-  readonly isCore: boolean; // true for built-in (skills, subagents), false for plugins
+  readonly isCore: boolean; // true for built-in, false for plugins
 
   // Discovery
   discover(source: ParsedSource, options?: DiscoverOptions): Promise<Resource[]>;
@@ -473,7 +459,7 @@ interface ResourceHandler {
 
   // Agent compatibility
   getSupportedAgents(): AgentType[];
-  getInstallPath(agent: AgentType, scope: 'global' | 'project'): string;
+  getInstallPath(agent: AgentType, scope: Scope): string;
 }
 ```
 
@@ -495,8 +481,8 @@ interface Resource {
 
 interface InstallTarget {
   agent: AgentType;
-  scope: 'global' | 'project';
-  mode: 'symlink' | 'copy';
+  scope: Scope;
+  mode: InstallMode;
 }
 
 interface ValidationResult {
@@ -516,32 +502,27 @@ coding-agent-fabric includes two built-in resource handlers that work across all
 class SkillsHandler implements ResourceHandler {
   type = 'skills';
   displayName = 'Skills';
-  isCore = true; // Built-in handler
+  isCore = true;
 
   async discover(source: ParsedSource): Promise<Resource[]> {
-    // Scan for SKILL.md files (supports nested directories)
-    // Parse YAML frontmatter (name, description, metadata)
-    // Extract categories from directory path
-    // Apply naming strategy (smart-disambiguation, full-path-prefix, etc.)
-    // Return array of Skill resources
+    // 1. Recursively scan for SKILL.md files
+    // 2. Parse YAML frontmatter or Markdown headings for name, version, description
+    // 3. Extract categories from source directory path
+    // 4. Apply naming strategy (smart-disambiguation, full-path-prefix, etc.)
+    // 5. Collect all files in the skill directory
   }
 
   async install(skill: Resource, targets: InstallTarget[], options: InstallOptions): Promise<void> {
-    // 1. Create canonical copy in .agents/skills/<installedName>/
-    // 2. For each agent × target:
-    //    - Create symlink or copy to agent's skills directory
-    //    - Apply flattening if nested source structure
-    // 3. Update lock file with source path and categories
+    // 1. Validate skill (must have SKILL.md)
+    // 2. For each agent target:
+    //    - Mode 'symlink': Link source directory to agent's skills path
+    //    - Mode 'copy': Copy all skill files to agent's skills path
+    // 3. Audit log the installation success
   }
 
-  getInstallPath(agent: AgentType, scope: 'global' | 'project'): string {
-    const agentConfig = AGENT_REGISTRY[agent];
-    return scope === 'global' ? agentConfig.globalSkillsDir : agentConfig.skillsDir;
-  }
-
-  getSupportedAgents(): AgentType[] {
-    // All 39+ agents support skills
-    return Object.keys(AGENT_REGISTRY) as AgentType[];
+  getInstallPath(agent: AgentType, scope: Scope): string {
+    const config = AGENT_REGISTRY[agent];
+    return scope === 'global' ? config.globalSkillsDir : config.skillsDir;
   }
 }
 ```
@@ -558,14 +539,13 @@ class SkillsHandler implements ResourceHandler {
 class SubagentsHandler implements ResourceHandler {
   type = 'subagents';
   displayName = 'Subagents';
-  isCore = true; // Built-in handler
+  isCore = true;
 
   async discover(source: ParsedSource): Promise<Resource[]> {
-    // Scan for:
-    //   - Claude Code format: YAML frontmatter in agent files
-    //   - coding-agent-fabric format: subagent.json files
-    // Parse: name, model, systemPrompt, tools, capabilities
-    // Normalize to common format
+    // 1. Scan for subagent.json, subagent.yaml, or *.md with frontmatter
+    // 2. Parse config (name, model, instructions, tools)
+    // 3. Generate config hash for update detection
+    // 4. Collect support files in subagent directory
   }
 
   async install(
@@ -573,18 +553,17 @@ class SubagentsHandler implements ResourceHandler {
     targets: InstallTarget[],
     options: InstallOptions,
   ): Promise<void> {
-    // 1. Validate subagent config (required fields, valid model names)
-    // 2. Install to .agents/subagents/<name>/
-    // 3. For each agent:
-    //    - Convert to agent-specific format (YAML for Claude Code, JSON for others)
-    //    - Copy to agent's subagents directory
-    //    - Validate agent supports subagent system
+    // 1. Validate subagent config
+    // 2. For each agent target:
+    //    - Create agent-specific subdirectory for support files
+    //    - Convert main config to target format (YAML for Claude Code, JSON for others)
+    //    - Write converted config to agent's agents path
+    // 3. Audit log the installation success
   }
 
   getSupportedAgents(): AgentType[] {
-    // Claude Code has native subagent support (Task tool)
-    // Others may add support over time
-    return ['claude-code'];
+    // Filter agents from registry that define subagentsDir
+    return ['claude-code', 'cursor', 'codex', 'windsurf', 'aider', 'continue'];
   }
 }
 ```
@@ -645,10 +624,10 @@ interface coding-agent-fabricLockFile {
 
   // Configuration
   config: {
-    preferredAgents: string[];     // Default agents for new resources
-    defaultScope: 'project' | 'global';
-    historyLimit?: number;         // Max history entries per resource (default: 10)
-    updateStrategy?: 'parallel' | 'sequential';  // Default: parallel
+    preferredAgents: AgentType[];     // Default agents for new resources
+    defaultScope: Scope;
+    historyLimit: number;             // Max history entries per resource (default: 10)
+    updateStrategy: UpdateStrategy;   // 'parallel' | 'sequential'
     namingStrategy?: NamingStrategy;  // Default naming strategy for skills
   };
 
@@ -657,72 +636,64 @@ interface coding-agent-fabricLockFile {
 
   // Installed resources
   resources: Record<string, ResourceLockEntry>;
-
-  // Source tracking
-  sources?: Record<string, SourceMetadata>;
 }
 
 interface PluginLockEntry {
   version: string;
   installedAt: string;
   enabled: boolean;
-  location: 'bundled' | 'project' | 'global';  // Where plugin is loaded from
+  location: PluginLocation;  // 'bundled' | 'project' | 'global'
 }
 
-```typescript
-type NamingStrategy =
-  | 'smart-disambiguation'
-  | 'full-path-prefix'
-  | 'category-prefix'
-  | 'original-name';
-```typescript
 type ResourceLockEntry =
-| SkillLockEntry
-| HookLockEntry
-| SubagentLockEntry
-| MCPLockEntry
-| PluginResourceLockEntry;
+  | SkillLockEntry
+  | HookLockEntry
+  | SubagentLockEntry
+  | MCPLockEntry
+  | PluginResourceLockEntry;
 
-interface BaseLockEntry {
-type: string; // Discriminator: "skills", "hooks", "subagents", "mcp", etc.
-handler: string; // "built-in" or plugin ID (e.g., "@coding-agent-fabric/plugin-claude-code-hooks")
-name: string;
-version?: string;
-source: string; // "owner/repo", "npm:package", "local:./path"
-sourceType: string; // "github", "gitlab", "npm", "local"
-sourceUrl: string;
-installedAt: string;
-updatedAt: string;
-installedFor: {
-agent: string;
-scope: 'global' | 'project';
-path: string;
-}[];
+interface BaseResourceLockEntry {
+  type: string; // Discriminator: "skills", "hooks", "subagents", "mcp", etc.
+  name: string;
+  version?: string;
+  handler: string; // "built-in" or plugin ID (e.g., "@coding-agent-fabric/plugin-claude-code-hooks")
+  source: string; // "owner/repo", "npm:package", "local:./path"
+  sourceType: SourceType; // "github", "gitlab", "npm", "local"
+  sourceUrl: string;
+  installedAt: string;
+  updatedAt: string;
+  installedFor: {
+    agent: AgentType;
+    scope: Scope;
+    path: string;
+  }[];
+  history?: {
+    version?: string;
+    updatedAt: string;
+    source: string;
+    metadata?: Record<string, unknown>;
+  }[];
 }
 
-interface SkillLockEntry extends BaseLockEntry {
-type: 'skills';
-handler: 'built-in'; // Skills are core
-originalName: string; // Original name from SKILL.md
-installedName: string; // Name after conflict resolution
-sourcePath: string; // Path in source repo (e.g., "skills/frontend/react/patterns")
-categories: string[]; // Extracted from source path
-namingStrategy?: NamingStrategy;
-skillFolderHash?: string; // GitHub tree SHA for update detection
+interface SkillLockEntry extends BaseResourceLockEntry {
+  type: 'skills';
+  originalName: string; // Original name from SKILL.md
+  installedName: string; // Name after conflict resolution
+  sourcePath: string; // Path in source repo (e.g., "skills/frontend/react/patterns")
+  categories: string[]; // Extracted from source path
+  namingStrategy: NamingStrategy;
+  skillFolderHash?: string; // Hash for update detection
 }
 
-interface SubagentLockEntry extends BaseLockEntry {
-type: 'subagents';
-handler: 'built-in'; // Subagents are core
-model?: string; // Model identifier (e.g., "claude-sonnet-4")
-format: 'claude-code-yaml' | 'coding-agent-fabric-json'; // Source format
-configHash: string;
+interface SubagentLockEntry extends BaseResourceLockEntry {
+  type: 'subagents';
+  model?: string; // Model identifier (e.g., "claude-3-5-sonnet")
+  format: 'coding-agent-fabric-json' | 'claude-code-yaml' | 'markdown-frontmatter';
+  configHash: string;
 }
 
-interface PluginResourceLockEntry extends BaseLockEntry {
-type: string; // Resource type (e.g., "hooks", "mcp")
-handler: string; // Plugin ID (e.g., "@coding-agent-fabric/plugin-claude-code-hooks")
-metadata: Record<string, unknown>; // Plugin-specific metadata
+interface PluginResourceLockEntry extends BaseResourceLockEntry {
+  metadata: Record<string, unknown>; // Plugin-specific metadata
 }
 ```
 
@@ -782,7 +753,14 @@ metadata: Record<string, unknown>; // Plugin-specific metadata
         {
           "agent": "cursor",
           "scope": "project",
-          "path": ".cursor/skills/frontend-design"
+          "path": ".cursor/rules/frontend-design"
+        }
+      ],
+      "history": [
+        {
+          "version": "1.1.0",
+          "updatedAt": "2026-01-15T09:00:00Z",
+          "source": "vercel-labs/agent-skills"
         }
       ]
     },
@@ -804,9 +782,9 @@ metadata: Record<string, unknown>; // Plugin-specific metadata
         }
       ],
       "metadata": {
-        "event": "PreToolUse",
-        "matcher": "Bash",
-        "command": ".claude/hooks/pre-commit.sh"
+        "hookType": "PreToolUse",
+        "tools": ["Bash"],
+        "description": "Runs ESLint before commits"
       }
     },
 
@@ -831,13 +809,6 @@ metadata: Record<string, unknown>; // Plugin-specific metadata
         "command": "npx -y @modelcontextprotocol/server-sqlite",
         "npmPackage": "@modelcontextprotocol/server-sqlite"
       }
-    }
-  },
-
-  "sources": {
-    "vercel-labs/agent-skills": {
-      "lastChecked": "2026-02-04T15:00:00Z",
-      "availableUpdates": {}
     }
   }
 }
@@ -961,27 +932,69 @@ const AGENT_REGISTRY: Record<AgentType, AgentConfig> = {
     globalSkillsDir: '~/.claude/skills',
     hooksDir: '.claude/hooks',
     globalHooksDir: '~/.claude/hooks',
-    subagentsDir: '.claude/subagents',
-    globalSubagentsDir: '~/.claude/subagents',
+    subagentsDir: '.claude/agents',
+    globalSubagentsDir: '~/.claude/agents',
     mcpConfigFile: '.claude/mcp.json',
     globalMcpConfigFile: '~/.claude/mcp.json',
     detectInstalled: async () => {
-      // Check for ~/.claude directory or `claude` binary
+      /* ... */
     },
   },
   cursor: {
     name: 'cursor',
     displayName: 'Cursor',
-    skillsDir: '.cursor/skills',
-    globalSkillsDir: '~/.cursor/skills',
+    skillsDir: '.cursor/rules',
+    globalSkillsDir: '~/.cursor/rules',
     hooksDir: '.cursor/hooks',
     globalHooksDir: '~/.cursor/hooks',
-    // Cursor may not support subagents or MCP yet
+    subagentsDir: '.cursor/agents',
+    globalSubagentsDir: '~/.cursor/agents',
+    mcpConfigFile: '.cursor/mcp.json',
+    globalMcpConfigFile: '~/.cursor/mcp.json',
     detectInstalled: async () => {
-      // Check for Cursor app or ~/.cursor directory
+      /* ... */
     },
   },
-  // ... 37 more agents
+  windsurf: {
+    name: 'windsurf',
+    displayName: 'Windsurf',
+    skillsDir: '.windsurf/rules',
+    globalSkillsDir: '~/.windsurf/rules',
+    hooksDir: '.windsurf/hooks',
+    globalHooksDir: '~/.windsurf/hooks',
+    subagentsDir: '.windsurf/agents',
+    globalSubagentsDir: '~/.windsurf/agents',
+    detectInstalled: async () => {
+      /* ... */
+    },
+  },
+  aider: {
+    name: 'aider',
+    displayName: 'Aider',
+    skillsDir: '.aider/skills',
+    globalSkillsDir: '~/.aider/skills',
+    subagentsDir: '.aider/agents',
+    globalSubagentsDir: '~/.aider/agents',
+    detectInstalled: async () => {
+      /* ... */
+    },
+  },
+  continue: {
+    name: 'continue',
+    displayName: 'Continue',
+    skillsDir: '.continue/skills',
+    globalSkillsDir: '~/.continue/skills',
+    hooksDir: '.continue/hooks',
+    globalHooksDir: '~/.continue/hooks',
+    subagentsDir: '.continue/agents',
+    globalSubagentsDir: '~/.continue/agents',
+    mcpConfigFile: '.continue/mcp.json',
+    globalMcpConfigFile: '~/.continue/mcp.json',
+    detectInstalled: async () => {
+      /* ... */
+    },
+  },
+  // ... many more agents
 };
 ```
 
@@ -1016,148 +1029,80 @@ function parseSource(input: string): ParsedSource {
 
 ## Implementation Plan
 
-### Phase 1: Core Foundation (Months 1-3)
+### Phase 1: Core Foundation (Months 1-3) - [COMPLETED]
 
 **Goal:** Launch MVP with core resource types (skills, subagents), plugin infrastructure, and bundled plugins
 
-#### Milestone 1.1: Project Setup (Week 1-2)
+#### Milestone 1.1: Project Setup - [DONE]
 
-- Initialize new repository: `coding-agent-fabric`
-- Set up pnpm workspace structure (`packages/cli`, `packages/core`, `packages/common`)
-- Set up TypeScript build system (ESBuild or Rollup)
-- Configure testing framework (Vitest)
-- Set up CI/CD (GitHub Actions)
-- Create initial package.json and bin/coding-agent-fabric executable
-- Copy and refactor agent registry from skills CLI into `packages/core`
+- [x] Initialize new repository: `coding-agent-fabric`
+- [x] Set up pnpm workspace structure (`packages/cli`, `packages/core`, `packages/common`)
+- [x] Set up TypeScript build system and testing with Vitest
+- [x] Port and refactor agent registry from skills CLI into `packages/core`
 
-#### Milestone 1.2: Core System Layer (Week 3-5)
+#### Milestone 1.2: Core System Layer - [DONE]
 
-- Implement `ResourceHandler` interface in `packages/plugin-api`
-- Implement core system logic in `packages/core` (SourceParser, LockManager, Installer)
-- Add `isCore` flag to distinguish built-in vs. plugin handlers
-- Build `SourceParser` (GitHub, local paths initially)
-- Create `LockManager` with v2 lock file schema (includes plugin tracking)
-- Implement `Installer` with symlink/copy/flatten modes
-- Build `Discovery` system (nested directory support, category extraction)
-- Implement naming strategies (smart-disambiguation, full-path-prefix, etc.)
+- [x] Implement `ResourceHandler` interface in `packages/plugin-api`
+- [x] Build `SourceParser` (GitHub, local paths, npm, etc.)
+- [x] Create `LockManager` with v2 lock file schema
+- [x] Implement `Installer` with symlink/copy modes
+- [x] Build `Discovery` system and naming strategies
+- [x] Implement `AuditLogger` for tracking system actions
 
-#### Milestone 1.3: Skills Handler (Week 6-7)
+#### Milestone 1.3: Skills Handler - [DONE]
 
-- Implement `SkillsHandler` (discover, install, remove, list)
-- Port and refactor skills discovery logic from skills CLI
-- Add SKILL.md parsing with frontmatter validation
-- Implement nested directory discovery with category extraction
-- Apply configurable naming strategies for conflict resolution
-- Write tests for skills installation across multiple agents
+- [x] Implement `SkillsHandler` with nested directory support
+- [x] Add SKILL.md parsing and category extraction
+- [x] Write tests for skills installation across multiple agents
 
-#### Milestone 1.4: Subagents Handler (Week 8-9)
+#### Milestone 1.4: Subagents Handler - [DONE]
 
-- Implement `SubagentsHandler`
-- Support multiple subagent formats (Claude Code YAML + coding-agent-fabric JSON)
-- Add format conversion logic for target agents
-- Validate subagent config (required fields, valid model names)
-- Test subagent installation for Claude Code
+- [x] Implement `SubagentsHandler` with format conversion (YAML/JSON)
+- [x] Validate subagent config and model names
+- [x] Test subagent installation for Claude Code and others
 
-#### Milestone 1.5: Plugin Infrastructure (Week 10-11)
+#### Milestone 1.5: Plugin Infrastructure - [DONE]
 
-- Design plugin manifest schema (plugin.json)
-- Implement plugin loading system
-- Add plugin discovery (`.coding-agent-fabric/plugins/` with global fallback)
-- Create `PluginManager` class for registration and lifecycle
-- Implement error handling for missing plugins
-- Add `coding-agent-fabric plugin list/remove` commands
+- [x] Implement `PluginManager` for dynamic plugin loading
+- [x] Add plugin discovery in `.coding-agent-fabric/plugins/`
+- [x] Create CLI commands for plugin management
 
-#### Milestone 1.6: Bundled Plugins (Week 12-14)
+#### Milestone 1.6: CLI & UX - [DONE]
 
-- Build `@coding-agent-fabric/plugin-claude-code-hooks` (Claude Code hooks plugin)
-- Build `@coding-agent-fabric/plugin-cursor-hooks` (Cursor hooks plugin)
-- Build `@coding-agent-fabric/plugin-gemini-cli-hooks` (Gemini CLI hooks plugin)
-- Build `@coding-agent-fabric/plugin-mcp` (MCP servers plugin)
-- Bundle plugins with coding-agent-fabric distribution
-- Test plugin loading and resource management
+- [x] Build command router with interactive prompts (Inquirer)
+- [x] Add progress indicators (Ora) and colorful logging (Chalk)
+- [x] Create comprehensive help documentation
 
-#### Milestone 1.7: CLI & UX (Week 15)
+### Phase 2: First-Party Plugins (Months 4-5) - [IN PROGRESS]
 
-- Build command router with core + plugin command dispatch
-- Implement interactive prompts (agent selection, resource selection, naming strategy)
-- Add progress indicators and error handling
-- Show clear errors when required plugin missing
-- Create help documentation and examples
+**Goal:** Deliver bundled plugins for hooks and MCP servers
 
-#### Milestone 1.8: Beta Testing & Launch (Week 16)
+#### Milestone 2.1: Hooks Plugins
 
-- Internal dogfooding on coding-agent-fabric team projects
-- Fix critical bugs
-- Performance optimization
-- Documentation review
-- Publish to npm as `coding-agent-fabric` package
-- Announce on social media and forums
+- [x] Build `@coding-agent-fabric/plugin-claude-code-hooks`
+- [x] Build `@coding-agent-fabric/plugin-cursor-hooks`
+- [ ] Build `@coding-agent-fabric/plugin-gemini-cli-hooks`
+- [ ] Test cross-agent hook compatibility
 
-### Phase 2: Plugin Ecosystem & Discovery (Months 4-5)
+#### Milestone 2.2: MCP Plugin
 
-#### Milestone 2.1: Third-Party Plugin Support (Week 17-18)
+- [x] Build `@coding-agent-fabric/plugin-mcp`
+- [ ] Implement automatic `npx` execution for MCP servers
+- [ ] Support project-specific MCP configurations
 
-- Implement `coding-agent-fabric plugin add` for third-party plugins (GitHub, npm)
-- Build plugin template generator (`coding-agent-fabric init-plugin`)
-- Create plugin development documentation
-- Publish example third-party plugin
+### Phase 3: Ecosystem & Registry (Months 6-7)
 
-#### Milestone 2.2: Granular Management Features (Week 19-20)
+#### Milestone 3.1: coding-agent-fabric Registry
 
-- Implement preferred agents configuration
-- Add update history tracking in lock file (configurable limit)
-- Build rollback commands (`coding-agent-fabric skills rollback <name>`)
-- Add source-based updates (`coding-agent-fabric update --source owner/repo`)
-- Implement agent syncing (`coding-agent-fabric sync --to <agent>`)
+- [ ] Build centralized registry service (API + Web UI)
+- [ ] Add plugin marketplace for third-party plugins
+- [ ] Support resource search and popularity metrics
 
-#### Milestone 2.3: Registry Integration (Week 21-22)
+#### Milestone 3.2: Advanced Management
 
-- Integrate with existing skills.sh registry
-- Add `coding-agent-fabric find` for cross-resource search
-- Support npm registry for plugin discovery
-- Add well-known endpoints support
-
-#### Milestone 2.4: Dependencies & Validation (Week 23-24)
-
-- Implement resource dependency resolution
-- Add `coding-agent-fabric doctor` for health checks
-- Validate agent compatibility before installation
-- Add conflict detection for plugin resources
-
-### Phase 3: Ecosystem & Growth (Months 6-7)
-
-#### Milestone 3.1: coding-agent-fabric Registry (Week 25-28)
-
-- Build centralized registry service (API + web UI)
-- Support resource discovery (skills, subagents)
-- Add plugin marketplace for third-party plugins
-- Allow community submissions with moderation
-- Add search, filtering, and popularity metrics
-
-#### Milestone 3.2: Advanced Features (Week 29-32)
-
-- Resource versioning with semver constraints
-- Automated update notifications (daily checks, respect `DISABLE_UPDATE_CHECK`)
-- Resource health monitoring (broken links, deprecated resources)
-- Resource bundles (install multiple resources at once)
-
-#### Milestone 3.3: Community & Documentation (Week 33-36)
-
-- Write comprehensive documentation site
-  - Core concepts (skills, subagents)
-  - Plugin development guide
-  - Nested directory and naming strategies
-  - Granular management features
-- Create video tutorials
-- Launch community Discord/Slack
-- Organize hackathon for resource creation
-
-#### Milestone 3.4: Partnerships & Integration (Week 37-40)
-
-- Partner with agent creators (Claude, Cursor, Gemini, etc.) for official endorsement
-- Integrate with agent marketplaces and plugin stores
-- Collaborate with skills.sh, Vercel, and other ecosystem players
-- Promote community-contributed plugins
+- [ ] Implement resource versioning with semver constraints
+- [ ] Add automated update notifications
+- [ ] Build resource bundles (install multiple resources at once)
 
 ---
 
@@ -1178,7 +1123,7 @@ Users currently using `skills` CLI can continue using it. coding-agent-fabric is
  npx skills --version   # Still works
 ```
 
-2. **Try coding-agent-fabric for new resources**
+1. **Try coding-agent-fabric for new resources**
 
 ```bash
  # Use coding-agent-fabric for new installations
@@ -1188,7 +1133,7 @@ Users currently using `skills` CLI can continue using it. coding-agent-fabric is
  npx skills list
 ```
 
-3. **Optional: Migrate existing skills**
+1. **Optional: Migrate existing skills**
 
 ```bash
  # coding-agent-fabric can auto-detect skills installed by skills CLI
@@ -1200,7 +1145,7 @@ Users currently using `skills` CLI can continue using it. coding-agent-fabric is
  # - Preserve symlinks
 ```
 
-4. **Eventually deprecate skills CLI**
+1. **Eventually deprecate skills CLI**
 
 - After 6-12 months, recommend users fully migrate
 - `skills` CLI will enter maintenance mode
@@ -1324,26 +1269,24 @@ coding-agent-fabric hooks add your-org/your-repo
 
 ## Success Metrics
 
-### Success Metrics: Phase 1 (MVP)
+### Phase 1: MVP Core (Achieved)
 
-- 1,000+ installs
-- 50+ resources published (across all types)
-- Support for 20+ agents (tested and verified)
-- 90%+ user satisfaction (survey)
+- [x] Functional CLI with core resource management
+- [x] Unified interface for Skills and Subagents
+- [x] Plugin infrastructure supporting agent-specific extensions
+- [x] Robust lock file system for cross-agent synchronization
 
-### Success Metrics: Phase 2 (Extensibility)
+### Phase 2: Plugin Ecosystem (Target: Q1 2026)
 
-- 5,000+ installs
-- 200+ resources published
-- 5+ community plugins
-- 80% of users use multiple resource types
+- [ ] 5+ production-ready plugins in `packages/plugins`
+- [ ] 1,000+ installs of the `coding-agent-fabric` CLI
+- [ ] Active community contributions for agent-specific hooks
 
-### Success Metrics: Phase 3 (Ecosystem)
+### Phase 3: Ecosystem Growth (Target: Q2 2026)
 
-- 10,000+ installs
-- 500+ resources published
-- 20+ community plugins
-- Official endorsement from 2+ agent creators
+- [ ] Centralized Registry for easy discovery
+- [ ] 10,000+ installs and 500+ community resources
+- [ ] Official endorsement from major agent providers
 
 ---
 

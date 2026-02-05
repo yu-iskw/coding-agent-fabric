@@ -1,0 +1,33 @@
+{
+  "name": "@coding-agent-fabric/plugin-api",
+  "version": "0.1.0",
+  "description": "Plugin API and base interfaces for coding-agent-fabric resource handlers",
+  "keywords": [
+    "coding-agent-fabric",
+    "plugin",
+    "api"
+  ],
+  "license": "Apache-2.0",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@coding-agent-fabric/common": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^24.3.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
+  }
+}
