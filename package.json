@@ -10,6 +10,7 @@
     "plugins"
   ],
   "license": "Apache-2.0",
+  "type": "module",
   "main": "index.js",
   "scripts": {
     "build": "pnpm --recursive build",
@@ -26,7 +27,8 @@
     "lint:security": "trunk check --all --scope security",
     "lint:trunk": "trunk check -y",
     "lint:trunk-all": "trunk check --all -y",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:integration": "make -C integration_tests test"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",

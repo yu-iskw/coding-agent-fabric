@@ -15,68 +15,67 @@ The fabric automatically detects and manages resources for:
 - **Cursor** (`.cursor/rules/`)
 - **Gemini CLI (Codex)** (`.codex/`)
 
-## Workspace Layout
-
-```text
-packages/
-  cli/          # Command-line interface and UX
-  core/         # Lock management, source parsing, and resource handlers
-  common/       # Shared types, constants, and utilities
-  plugin-api/   # Base interfaces for third-party extensions
-  plugins/      # (In development) Bundled resource handlers
-```
-
-## Quick Start
-
-```bash
-# Install dependencies
-pnpm install
-
-# Build the project
-pnpm build
-
-# Check installation health
-coding-agent-fabric doctor
-```
-
 ## CLI Examples
 
-### Skills
+<!-- SYNC:COMMANDS -->
+
+### plugin
+
+Manage coding-agent-fabric plugins
 
 ```bash
-# Add skills from a local directory or GitHub repo
-coding-agent-fabric skills add ./my-skills
-coding-agent-fabric skills add owner/repo
-
-# List all installed skills
-coding-agent-fabric skills list
-
-# Remove a skill
-coding-agent-fabric skills remove frontend-design
-```
-
-### Subagents
-
-```bash
-# Add subagents from a source
-coding-agent-fabric subagents add ./my-agents
-
-# List all installed subagents
-coding-agent-fabric subagents list
-
-# Remove a subagent
-coding-agent-fabric subagents remove code-reviewer
-```
-
-### System & Plugins
-
-```bash
-# Check installation health and detected agents
-coding-agent-fabric doctor
-
+# Install a third-party plugin
+coding-agent-fabric plugin add
 # List installed plugins
 coding-agent-fabric plugin list
+# Remove a plugin
+coding-agent-fabric plugin remove
 ```
+
+### skills
+
+Manage AI agent skills
+
+```bash
+# Install skills from a source
+coding-agent-fabric skills add
+# List installed skills
+coding-agent-fabric skills list
+# Remove a skill
+coding-agent-fabric skills remove
+# Update all skills
+coding-agent-fabric skills update
+```
+
+### subagents
+
+Manage AI subagents
+
+```bash
+# Install subagents from a source
+coding-agent-fabric subagents add
+# List installed subagents
+coding-agent-fabric subagents list
+# Remove a subagent
+coding-agent-fabric subagents remove
+# Update all subagents
+coding-agent-fabric subagents update
+```
+
+### system
+
+System management commands
+
+```bash
+# Check the health of your installation
+coding-agent-fabric doctor
+# Check for updates across all resources
+coding-agent-fabric check
+# Update all resources to their latest versions
+coding-agent-fabric update
+```
+
+<!-- /SYNC:COMMANDS -->
 
 ## Roadmap
 
@@ -85,6 +84,10 @@ coding-agent-fabric plugin list
 - [ ] **MCP Plugin**: Manage Model Context Protocol (MCP) server configurations.
 - [ ] **Auto-Updates**: Check for and install updates for managed resources.
 - [ ] **Registry**: A central repository for sharing skills and subagents.
+
+## Contributing
+
+Interested in contributing? Please read our [CONTRIBUTING.md](CONTRIBUTING.md) guide to set up your development environment.
 
 ## License
 
