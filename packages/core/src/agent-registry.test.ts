@@ -37,7 +37,7 @@ describe('AgentRegistry', () => {
       expect(config).toBeDefined();
       expect(config?.name).toBe('cursor');
       expect(config?.displayName).toBe('Cursor');
-      expect(config?.skillsDir).toContain('.cursor/rules');
+      expect(config?.skillsDir).toContain('.cursor/fabric-skills');
     });
   });
 

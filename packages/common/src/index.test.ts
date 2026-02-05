@@ -102,7 +102,7 @@ describe('@coding-agent-fabric/common', () => {
     });
 
     it('should have correct core resource types', () => {
-      expect(CORE_RESOURCE_TYPES).toEqual(['skills', 'subagents']);
+      expect(CORE_RESOURCE_TYPES).toEqual(['skills', 'subagents', 'rules']);
     });
   });
 });

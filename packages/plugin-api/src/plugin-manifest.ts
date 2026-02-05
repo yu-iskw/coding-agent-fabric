@@ -2,7 +2,7 @@
  * Plugin manifest and metadata types
  */
 
-import type { AgentType, AuditRecord, AuditOutcome } from '@coding-agent-fabric/common';
+import type { AgentType } from '@coding-agent-fabric/common';
 
 /**
  * Plugin manifest schema (plugin.json)

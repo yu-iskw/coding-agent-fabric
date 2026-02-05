@@ -85,7 +85,12 @@ export const BUILT_IN_HANDLER = 'built-in';
 /**
  * Core resource types (built-in)
  */
-export const CORE_RESOURCE_TYPES = ['skills', 'subagents'] as const;
+export const CORE_RESOURCE_TYPES = ['skills', 'subagents', 'rules'] as const;
+
+/**
+ * Rule file extensions
+ */
+export const RULE_FILE_EXTENSIONS = ['.md', '.mdc'] as const;
 
 /**
  * Bundled plugin IDs

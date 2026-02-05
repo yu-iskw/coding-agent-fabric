@@ -16,6 +16,7 @@ import type {
   InstallOptions,
   RemoveOptions,
   Scope,
+  ListResult,
 } from '@coding-agent-fabric/common';
 
 /**
@@ -79,9 +80,9 @@ export interface ResourceHandler {
    * List installed resources
    *
    * @param scope - Scope to list ('global', 'project', or 'both')
-   * @returns Array of installed resources
+   * @returns List result with resources and errors
    */
-  list(scope: 'global' | 'project' | 'both'): Promise<InstalledResource[]>;
+  list(scope: 'global' | 'project' | 'both'): Promise<ListResult>;
 
   /**
    * Validation
@@ -159,7 +160,7 @@ export abstract class BaseResourceHandler implements ResourceHandler {
     options: RemoveOptions,
   ): Promise<void>;
 
-  abstract list(scope: 'global' | 'project' | 'both'): Promise<InstalledResource[]>;
+  abstract list(scope: 'global' | 'project' | 'both'): Promise<ListResult>;
 
   abstract validate(resource: Resource): Promise<ValidationResult>;
 

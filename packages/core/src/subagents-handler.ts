@@ -17,6 +17,8 @@ import type {
   RemoveOptions,
   Scope,
   ResourceFile,
+  ListResult,
+  ListError,
 } from '@coding-agent-fabric/common';
 import {
   SUBAGENT_FILE_NAMES,
@@ -273,8 +275,9 @@ export class SubagentsHandler implements ResourceHandler {
   /**
    * List installed subagents by scanning agent directories
    */
-  async list(scope: 'global' | 'project' | 'both'): Promise<InstalledResource[]> {
+  async list(scope: 'global' | 'project' | 'both'): Promise<ListResult> {
     const resourcesMap: Map<string, InstalledResource> = new Map();
+    const errors: ListError[] = [];
     const agents = this.getSupportedAgents();
     const scopes: Scope[] = scope === 'both' ? ['project', 'global'] : [scope];
 
@@ -282,8 +285,9 @@ export class SubagentsHandler implements ResourceHandler {
 
     for (const agent of agents) {
       for (const s of scopes) {
+        let installPath = '';
         try {
-          const installPath = this.getInstallPath(agent, s);
+          installPath = this.getInstallPath(agent, s);
           if (!existsSync(installPath) || scannedPaths.has(installPath)) {
             continue;
           }
@@ -338,20 +342,40 @@ export class SubagentsHandler implements ResourceHandler {
                     });
                   }
                 } catch (e) {
-                  // Skip invalid configs
-                  console.error('Failed to parse subagent config at %s:', configPath, e);
-                  continue;
+                  // Log and record as a structured error
+                  const errorMessage = e instanceof Error ? e.message : String(e);
+                  this.auditLogger.failure(
+                    'list-subagent-parse',
+                    'subagents',
+                    this.type,
+                    errorMessage,
+                    configPath,
+                  );
+                  errors.push({
+                    agent,
+                    scope: s,
+                    error: `Failed to parse subagent config at ${this.auditLogger.sanitizePath(configPath)}: ${errorMessage}`,
+                  });
                 }
               }
             }
           }
         } catch (error) {
-          console.error('Failed to list subagents for agent %s in scope %s:', agent, s, error);
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          this.auditLogger.failure('list', 'subagents', this.type, errorMessage, installPath);
+          errors.push({
+            agent,
+            scope: s,
+            error: `Failed to access ${this.auditLogger.sanitizePath(installPath)}: ${errorMessage}`,
+          });
         }
       }
     }
 
-    return Array.from(resourcesMap.values());
+    return {
+      resources: Array.from(resourcesMap.values()),
+      errors,
+    };
   }
 
   /**

@@ -1,9 +1,9 @@
 /**
- * Skills commands
+ * Rules commands
  */
 
 import { Command } from 'commander';
-import { AgentRegistry, SkillsHandler } from '@coding-agent-fabric/core';
+import { AgentRegistry, RulesHandler } from '@coding-agent-fabric/core';
 import { type NamingStrategy, type AgentType, type Scope } from '@coding-agent-fabric/common';
 import type { AddOptions, ListOptions, RemoveOptions, UpdateOptions } from '../types/index.js';
 import { logger } from '../utils/logger.js';
@@ -20,15 +20,15 @@ import { isGitUrl, cloneRepo } from '../utils/git.js';
 import { cwd } from 'node:process';
 
 /**
- * Create skills command
+ * Create rules command
  */
-export function createSkillsCommand(): Command {
-  const cmd = new Command('skills').description('Manage AI agent skills');
+export function createRulesCommand(): Command {
+  const cmd = new Command('rules').description('Manage AI agent rules');
 
   // Add subcommand
   cmd
     .command('add')
-    .description('Install skills from a source')
+    .description('Install rules from a source')
     .argument('<source>', 'Source to install from (e.g., owner/repo, ./local/path)')
     .option('-g, --global', 'Install globally')
     .option('-f, --force', 'Force reinstall')
@@ -37,9 +37,9 @@ export function createSkillsCommand(): Command {
     .option('--mode <mode>', 'Installation mode (copy or symlink)')
     .action(async (source: string, options: AddOptions) => {
       try {
-        await addSkills(source, options);
+        await addRules(source, options);
       } catch (error) {
-        logger.error(`Failed to add skills: ${error instanceof Error ? error.message : error}`);
+        logger.error(`Failed to add rules: ${error instanceof Error ? error.message : error}`);
         process.exit(1);
       }
     });
@@ -47,15 +47,15 @@ export function createSkillsCommand(): Command {
   // List subcommand
   cmd
     .command('list')
-    .description('List installed skills')
-    .option('-g, --global', 'List global skills only')
-    .option('-p, --project', 'List project skills only')
-    .option('-a, --all', 'List all skills (default)')
+    .description('List installed rules')
+    .option('-g, --global', 'List global rules only')
+    .option('-p, --project', 'List project rules only')
+    .option('-a, --all', 'List all rules (default)')
     .action(async (options: ListOptions) => {
       try {
-        await listSkills(options);
+        await listRules(options);
       } catch (error) {
-        logger.error(`Failed to list skills: ${error instanceof Error ? error.message : error}`);
+        logger.error(`Failed to list rules: ${error instanceof Error ? error.message : error}`);
         process.exit(1);
       }
     });
@@ -63,17 +63,17 @@ export function createSkillsCommand(): Command {
   // Remove subcommand
   cmd
     .command('remove')
-    .description('Remove a skill')
-    .argument('<name>', 'Name of the skill to remove')
+    .description('Remove a rule')
+    .argument('<name>', 'Name of the rule to remove')
     .option('-g, --global', 'Remove from global scope')
     .option('-f, --force', 'Force removal even if not found')
     .option('-y, --yes', 'Skip confirmation prompts')
     .option('--agent <agent>', 'Target specific agent')
     .action(async (name: string, options: RemoveOptions) => {
       try {
-        await removeSkill(name, options);
+        await removeRule(name, options);
       } catch (error) {
-        logger.error(`Failed to remove skill: ${error instanceof Error ? error.message : error}`);
+        logger.error(`Failed to remove rule: ${error instanceof Error ? error.message : error}`);
         process.exit(1);
       }
     });
@@ -81,13 +81,13 @@ export function createSkillsCommand(): Command {
   // Update subcommand
   cmd
     .command('update')
-    .description('Update all skills')
+    .description('Update all rules')
     .option('--check-only', 'Only check for updates without installing')
     .action(async (options: UpdateOptions) => {
       try {
-        await updateSkills(options);
+        await updateRules(options);
       } catch (error) {
-        logger.error(`Failed to update skills: ${error instanceof Error ? error.message : error}`);
+        logger.error(`Failed to update rules: ${error instanceof Error ? error.message : error}`);
         process.exit(1);
       }
     });
@@ -96,16 +96,16 @@ export function createSkillsCommand(): Command {
 }
 
 /**
- * Add skills from a source
+ * Add rules from a source
  */
-async function addSkills(source: string, options: AddOptions): Promise<void> {
+async function addRules(source: string, options: AddOptions): Promise<void> {
   const projectRoot = cwd();
 
-  logger.header('Installing Skills');
+  logger.header('Installing Rules');
 
   // Initialize components
   const agentRegistry = new AgentRegistry(projectRoot);
-  const skillsHandler = new SkillsHandler({
+  const rulesHandler = new RulesHandler({
     agentRegistry,
     projectRoot,
   });
@@ -135,15 +135,15 @@ async function addSkills(source: string, options: AddOptions): Promise<void> {
 
   try {
     // Discover resources from the installed package
-    spinner.start('Discovering skills...');
-    const resources = await skillsHandler.discoverFromPath(packagePath, {
+    spinner.start('Discovering rules...');
+    const resources = await rulesHandler.discoverFromPath(packagePath, {
       namingStrategy: options.namingStrategy as NamingStrategy,
       categories: options.categories,
     });
-    spinner.succeed(`Found ${resources.length} skill(s) in ${packageName}`);
+    spinner.succeed(`Found ${resources.length} rule(s) in ${packageName}`);
 
     if (resources.length === 0) {
-      logger.warn('No skills found in source');
+      logger.warn('No rules found in source');
       return;
     }
 
@@ -154,14 +154,14 @@ async function addSkills(source: string, options: AddOptions): Promise<void> {
     }
 
     if (selectedResources.length === 0) {
-      logger.info('No skills selected');
+      logger.info('No rules selected');
       return;
     }
 
     // Select target agents
-    let targetAgents = options.agent ? [options.agent] : skillsHandler.getSupportedAgents();
+    let targetAgents = options.agent ? [options.agent] : rulesHandler.getSupportedAgents();
     if (!options.yes && !options.agent) {
-      targetAgents = await selectAgents(skillsHandler.getSupportedAgents());
+      targetAgents = await selectAgents(rulesHandler.getSupportedAgents());
     }
 
     if (targetAgents.length === 0) {
@@ -200,7 +200,7 @@ async function addSkills(source: string, options: AddOptions): Promise<void> {
         mode,
       }));
 
-      await skillsHandler.install(resource, targets, {
+      await rulesHandler.install(resource, targets, {
         force: options.force,
         yes: options.yes,
       });
@@ -208,7 +208,7 @@ async function addSkills(source: string, options: AddOptions): Promise<void> {
       spinner.succeed(`Installed ${resource.name}`);
     }
 
-    logger.success('\nSkills installed successfully!');
+    logger.success('\nRules installed successfully!');
   } finally {
     // Clean up temporary git clone if needed
     if (cleanup) {
@@ -218,65 +218,72 @@ async function addSkills(source: string, options: AddOptions): Promise<void> {
 }
 
 /**
- * List installed skills
+ * List installed rules
  */
-async function listSkills(options: ListOptions): Promise<void> {
+async function listRules(options: ListOptions): Promise<void> {
   const projectRoot = cwd();
 
   const agentRegistry = new AgentRegistry(projectRoot);
-  const skillsHandler = new SkillsHandler({
+  const rulesHandler = new RulesHandler({
     agentRegistry,
     projectRoot,
   });
 
   const scope = options.global ? 'global' : options.project ? 'project' : 'both';
-  const { resources: skills, errors } = await skillsHandler.list(scope);
+  const { resources: rules, errors } = await rulesHandler.list(scope);
 
   if (errors.length > 0) {
     for (const error of errors) {
-      logger.warn(`Failed to list skills for ${error.agent} (${error.scope}): ${error.error}`);
+      logger.warn(`Failed to list rules for ${error.agent} (${error.scope}): ${error.error}`);
     }
   }
 
-  if (skills.length === 0) {
-    logger.info('No skills installed');
+  if (rules.length === 0) {
+    logger.info('No rules installed');
     return;
   }
 
-  logger.header('Installed Skills');
-  for (const skill of skills) {
-    logger.log(`\n  ${skill.name}${skill.version ? ` (v${skill.version})` : ''}`);
-    if (skill.source) {
-      logger.log(`    Source: ${skill.source}`);
+  logger.header('Installed Rules');
+  for (const rule of rules) {
+    logger.log(`\n  ${rule.name}${rule.version ? ` (v${rule.version})` : ''}`);
+    if (rule.source) {
+      logger.log(`    Source: ${rule.source}`);
     }
-    logger.log(`    Installed for: ${skill.installedFor.map((i) => i.agent).join(', ')}`);
+    logger.log(`    Installed for: ${rule.installedFor.map((i) => i.agent).join(', ')}`);
+    if (rule.metadata?.globs) {
+      logger.log(`    Globs: ${JSON.stringify(rule.metadata.globs)}`);
+    }
   }
 }
 
 /**
- * Remove a skill
+ * Remove a rule
  */
-async function removeSkill(name: string, options: RemoveOptions): Promise<void> {
+async function removeRule(name: string, options: RemoveOptions): Promise<void> {
   const projectRoot = cwd();
 
   const agentRegistry = new AgentRegistry(projectRoot);
-  const skillsHandler = new SkillsHandler({
+  const rulesHandler = new RulesHandler({
     agentRegistry,
     projectRoot,
   });
 
-  // Find the skill in installed resources
-  const { resources: skills } = await skillsHandler.list('both');
-  const skill = skills.find((s) => s.name === name);
+  // Find the rule in installed resources
+  const { resources: rules } = await rulesHandler.list('both');
+  const rule = rules.find((r) => r.name === name);
 
-  if (!skill) {
-    logger.error(`Skill '${name}' not found`);
+  if (!rule) {
+    if (options.force) {
+      logger.warn(`Rule '${name}' not found (skipping due to --force)`);
+      return;
+    }
+    logger.error(`Rule '${name}' not found`);
     process.exit(1);
   }
 
   // Confirm removal
   if (!options.yes) {
-    const confirmed = await confirmAction(`Remove skill '${name}'?`, false);
+    const confirmed = await confirmAction(`Remove rule '${name}'?`, false);
     if (!confirmed) {
       logger.info('Removal cancelled');
       return;
@@ -285,8 +292,9 @@ async function removeSkill(name: string, options: RemoveOptions): Promise<void> 
 
   // Determine targets to remove from
   const scope: 'global' | 'project' | 'both' = options.global ? 'global' : options.scope || 'both';
-  const targets = skill.installedFor
+  const targets = rule.installedFor
     .filter((install) => scope === 'both' || install.scope === scope)
+    .filter((install) => !options.agent || install.agent === options.agent)
     .map((install) => ({
       agent: install.agent as AgentType,
       scope: install.scope as Scope,
@@ -294,32 +302,22 @@ async function removeSkill(name: string, options: RemoveOptions): Promise<void> 
     }));
 
   if (targets.length === 0) {
-    logger.warn(`Skill '${name}' is not installed in the specified scope`);
+    logger.warn(`Rule '${name}' is not installed in the specified scope`);
     return;
   }
 
   spinner.start(`Removing ${name}...`);
 
-  await skillsHandler.remove(
-    {
-      type: 'skills',
-      name,
-      description: '',
-      metadata: {},
-      files: [],
-    },
-    targets,
-    { yes: options.yes },
-  );
+  await rulesHandler.remove(rule, targets, { yes: options.yes });
 
   spinner.succeed(`Removed ${name}`);
-  logger.success('Skill removed successfully!');
+  logger.success('Rule removed successfully!');
 }
 
 /**
- * Update all skills
+ * Update all rules
  */
-async function updateSkills(_options: UpdateOptions): Promise<void> {
+async function updateRules(_options: UpdateOptions): Promise<void> {
   logger.info('Update functionality not yet implemented');
   // TODO: Implement update logic
 }

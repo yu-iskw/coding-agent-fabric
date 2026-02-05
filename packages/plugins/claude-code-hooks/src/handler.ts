@@ -16,6 +16,8 @@ import type {
   InstallOptions,
   RemoveOptions,
   Scope,
+  ListResult,
+  ListError,
 } from '@coding-agent-fabric/common';
 import { safeJoin } from '@coding-agent-fabric/common';
 import { promises as fs } from 'fs';
@@ -145,7 +147,7 @@ export class ClaudeCodeHooksHandler extends BaseResourceHandler {
           this.context.audit?.success('install-hook', resource.name, this.type, targetPath, {
             agent: target.agent,
             scope: target.scope,
-            hookType: (resource.metadata as any).hookType,
+            hookType: (resource.metadata as unknown as ClaudeCodeHookMetadata).hookType,
           });
         }
       }
@@ -195,8 +197,9 @@ export class ClaudeCodeHooksHandler extends BaseResourceHandler {
   /**
    * List installed hooks
    */
-  async list(scope: 'global' | 'project' | 'both'): Promise<InstalledResource[]> {
+  async list(scope: 'global' | 'project' | 'both'): Promise<ListResult> {
     const resources: InstalledResource[] = [];
+    const errors: ListError[] = [];
     const scopes: Scope[] = scope === 'both' ? ['global', 'project'] : [scope];
 
     for (const s of scopes) {
@@ -241,12 +244,39 @@ export class ClaudeCodeHooksHandler extends BaseResourceHandler {
           }
         }
       } catch (error) {
-        // Directory doesn't exist or can't be read
-        this.context.log.debug(`Cannot list hooks in ${installPath}:`, error);
+        // Directory doesn't exist is common and not an error
+        if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+          this.context.log.debug(`Hooks directory not found at ${installPath}`);
+          continue;
+        }
+
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        this.context.audit?.failure(
+          'list',
+          'claude-code-hooks',
+          this.type,
+          errorMessage,
+          installPath,
+        );
+
+        let displayPath = installPath;
+        const home = os.homedir();
+        if (displayPath.startsWith(home)) {
+          displayPath = displayPath.replace(home, '~');
+        }
+
+        errors.push({
+          agent: 'claude-code',
+          scope: s,
+          error: `Failed to access hooks in ${displayPath}: ${errorMessage}`,
+        });
       }
     }
 
-    return resources;
+    return {
+      resources,
+      errors,
+    };
   }
 
   /**

@@ -3,8 +3,8 @@
  */
 
 import { userInfo, homedir } from 'node:os';
-import { relative, isAbsolute, join, sep } from 'node:path';
-import type { AuditRecord, AuditOutcome } from '@coding-agent-fabric/common';
+import { relative, isAbsolute, join } from 'node:path';
+import type { AuditRecord } from '@coding-agent-fabric/common';
 
 /**
  * AuditLogger options
@@ -80,7 +80,7 @@ export class AuditLogger {
   /**
    * Sanitize a path to remove sensitive information
    */
-  private sanitizePath(p: string | undefined): string | undefined {
+  public sanitizePath(p: string | undefined): string | undefined {
     if (!p) return p;
 
     // If it's not an absolute path, we don't need to do much

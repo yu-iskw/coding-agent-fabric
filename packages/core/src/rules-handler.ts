@@ -1,10 +1,10 @@
 /**
- * SkillsHandler - Manages skills resources
+ * RulesHandler - Manages rules resources
  */
 
-import { readFile, writeFile, mkdir, readdir, stat, symlink, rm, readlink } from 'node:fs/promises';
+import { readFile, writeFile, mkdir, readdir, symlink, rm } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
-import { join, basename, dirname, relative, sep } from 'node:path';
+import { join, basename, dirname, relative, sep, extname } from 'node:path';
 import type {
   AgentType,
   Resource,
@@ -16,24 +16,21 @@ import type {
   InstallOptions,
   RemoveOptions,
   Scope,
-  ResourceFile,
   NamingStrategy,
-  SourceType,
   ListResult,
   ListError,
 } from '@coding-agent-fabric/common';
 import {
-  SKILL_FILE_NAME,
   EXCLUDE_PATTERNS,
+  RULE_FILE_EXTENSIONS,
   generateSmartName,
   sanitizeFileName,
-  safeJoin,
 } from '@coding-agent-fabric/common';
 import { ResourceHandler } from '@coding-agent-fabric/plugin-api';
 import { AgentRegistry } from './agent-registry.js';
 import { auditLogger, AuditLogger } from './audit-logger.js';
 
-export interface SkillsHandlerOptions {
+export interface RulesHandlerOptions {
   agentRegistry: AgentRegistry;
   projectRoot: string;
   globalRoot?: string;
@@ -41,12 +38,12 @@ export interface SkillsHandlerOptions {
 }
 
 /**
- * SkillsHandler manages skills resources
+ * RulesHandler manages rules resources
  */
-export class SkillsHandler implements ResourceHandler {
-  readonly type = 'skills';
-  readonly displayName = 'Skills';
-  readonly description = 'AI agent skills and workflows';
+export class RulesHandler implements ResourceHandler {
+  readonly type = 'rules';
+  readonly displayName = 'Rules';
+  readonly description = 'Proactive, context-aware instructions for agents';
   readonly isCore = true;
 
   private agentRegistry: AgentRegistry;
@@ -54,7 +51,7 @@ export class SkillsHandler implements ResourceHandler {
   private globalRoot?: string;
   private auditLogger: AuditLogger;
 
-  constructor(options: SkillsHandlerOptions) {
+  constructor(options: RulesHandlerOptions) {
     this.agentRegistry = options.agentRegistry;
     this.projectRoot = options.projectRoot;
     this.globalRoot = options.globalRoot;
@@ -66,7 +63,7 @@ export class SkillsHandler implements ResourceHandler {
   }
 
   /**
-   * Discover skills from a source
+   * Discover rules from a source
    */
   async discover(source: ParsedSource, options?: DiscoverOptions): Promise<Resource[]> {
     const localPath = source.localPath;
@@ -81,35 +78,33 @@ export class SkillsHandler implements ResourceHandler {
   }
 
   /**
-   * Discover skills from a local directory path
+   * Discover rules from a local directory path
    */
   async discoverFromPath(localPath: string, options?: DiscoverOptions): Promise<Resource[]> {
     const resources: Resource[] = [];
 
-    // Recursively find all SKILL.md files
-    const skillFiles = await this.findSkillFiles(localPath);
+    // Recursively find all rule files (*.md, *.mdc)
+    const ruleFiles = await this.findRuleFiles(localPath);
 
-    for (const skillPath of skillFiles) {
-      const skillDir = dirname(skillPath);
-      const skillContent = await readFile(skillPath, 'utf-8');
+    for (const rulePath of ruleFiles) {
+      const ruleDir = dirname(rulePath);
+      const ruleContent = await readFile(rulePath, 'utf-8');
 
-      // Extract metadata from SKILL.md
-      const metadata = this.parseSkillMetadata(skillContent);
-      const originalName = metadata.name || basename(skillDir);
+      // Extract metadata from rule file
+      const metadata = this.parseRuleMetadata(ruleContent, rulePath);
+      const originalName = metadata.name || basename(rulePath, extname(rulePath));
 
       // Extract categories from path
-      const relativePath = relative(localPath, skillDir);
+      const relativePath = relative(localPath, ruleDir);
       const pathParts = relativePath.split(sep).filter(Boolean);
-      // Remove the last part (skill directory name) to get categories
-      const categories =
-        options?.categories || (pathParts.length > 1 ? pathParts.slice(0, -1) : []);
+      // If the file is in a 'rules' directory, don't include that in categories
+      const agentNames = this.agentRegistry.getAllNames().map((name) => `.${name}`);
+      const categoryParts = pathParts.filter((p) => p !== 'rules' && !agentNames.includes(p));
+      const categories = options?.categories || categoryParts;
 
       // Generate smart name based on strategy
       const namingStrategy = options?.namingStrategy || 'smart-disambiguation';
       const installedName = this.generateInstalledName(originalName, categories, namingStrategy);
-
-      // Collect all files in the skill directory
-      const files = await this.collectSkillFiles(skillDir);
 
       resources.push({
         type: this.type,
@@ -120,10 +115,17 @@ export class SkillsHandler implements ResourceHandler {
           originalName,
           categories,
           namingStrategy,
-          sourcePath: relative(localPath, skillDir),
-          sourceDir: skillDir,
+          globs: metadata.globs,
+          sourcePath: relative(localPath, rulePath),
+          sourceDir: ruleDir,
+          configHash: this.generateConfigHash(metadata, ruleContent),
         },
-        files,
+        files: [
+          {
+            path: basename(rulePath),
+            content: ruleContent,
+          },
+        ],
       });
     }
 
@@ -131,7 +133,7 @@ export class SkillsHandler implements ResourceHandler {
   }
 
   /**
-   * Install a skill to target agents
+   * Install a rule to target agents
    */
   async install(
     resource: Resource,
@@ -142,7 +144,7 @@ export class SkillsHandler implements ResourceHandler {
     if (!options.skipValidation) {
       const validation = await this.validate(resource);
       if (!validation.valid) {
-        throw new Error(`Skill validation failed: ${validation.errors.join(', ')}`);
+        throw new Error(`Rule validation failed: ${validation.errors.join(', ')}`);
       }
     }
 
@@ -153,43 +155,46 @@ export class SkillsHandler implements ResourceHandler {
       // Ensure install directory exists
       await mkdir(installPath, { recursive: true });
 
-      const targetPath = join(installPath, sanitizeFileName(resource.name));
+      // Determine extension based on agent
+      const extension = target.agent === 'cursor' ? '.mdc' : '.md';
+      const targetFileName = `${sanitizeFileName(resource.name)}${extension}`;
+      const targetPath = join(installPath, targetFileName);
 
-      // Check if already exists
-      if (existsSync(targetPath) && !options.force) {
-        throw new Error(`Skill ${resource.name} already exists at ${targetPath}`);
-      }
-
-      // Remove existing if force
-      if (existsSync(targetPath) && options.force) {
-        await rm(targetPath, { recursive: true, force: true });
-      }
-
-      // Install files
+      // Install file
       if (target.mode === 'symlink') {
-        // Symlink the original discovered skill directory.
         const sourceDir = resource.metadata?.sourceDir;
         if (typeof sourceDir !== 'string' || sourceDir.length === 0) {
           throw new Error(
-            `Skill ${resource.name} cannot be symlinked because metadata.sourceDir is missing`,
+            `Rule ${resource.name} cannot be symlinked because metadata.sourceDir is missing`,
           );
         }
-        await symlink(sourceDir, targetPath, 'dir');
-      } else {
-        // Copy files
-        await mkdir(targetPath, { recursive: true });
-        for (const file of resource.files) {
-          if (file.path && file.content !== undefined) {
-            const destPath = safeJoin(targetPath, file.path);
-            await mkdir(dirname(destPath), { recursive: true });
-            await writeFile(destPath, file.content, {
-              mode: file.mode,
-            });
-          }
+
+        const sourcePath = join(sourceDir, resource.files[0].path);
+        if (!existsSync(sourcePath)) {
+          throw new Error(
+            `Rule ${resource.name} cannot be symlinked because source file does not exist: ${sourcePath}`,
+          );
         }
+
+        if (existsSync(targetPath)) {
+          if (!options.force) {
+            throw new Error(`Rule ${resource.name} already exists at ${targetPath}`);
+          }
+          await rm(targetPath, { force: true });
+        }
+
+        await symlink(sourcePath, targetPath);
+      } else {
+        // Check if already exists
+        if (existsSync(targetPath) && !options.force) {
+          throw new Error(`Rule ${resource.name} already exists at ${targetPath}`);
+        }
+
+        // Copy content
+        await writeFile(targetPath, resource.files[0].content || '', 'utf-8');
       }
 
-      this.auditLogger.success('install-skill', resource.name, this.type, targetPath, {
+      this.auditLogger.success('install-rule', resource.name, this.type, targetPath, {
         agent: target.agent,
         scope: target.scope,
         mode: target.mode,
@@ -198,7 +203,7 @@ export class SkillsHandler implements ResourceHandler {
   }
 
   /**
-   * Remove a skill from target agents
+   * Remove a rule from target agents
    */
   async remove(
     resource: Resource,
@@ -207,29 +212,37 @@ export class SkillsHandler implements ResourceHandler {
   ): Promise<void> {
     for (const target of targets) {
       const installPath = this.getInstallPath(target.agent, target.scope);
+      const baseName = sanitizeFileName(resource.name);
 
-      const targetPath = join(installPath, sanitizeFileName(resource.name));
+      // Check for both .md and .mdc
+      const possiblePaths = [
+        join(installPath, `${baseName}.md`),
+        join(installPath, `${baseName}.mdc`),
+      ];
 
-      if (!existsSync(targetPath)) {
-        this.auditLogger.warning('remove-skill-not-found', resource.name, this.type, {
-          targetPath,
+      let removed = false;
+      for (const targetPath of possiblePaths) {
+        if (existsSync(targetPath)) {
+          await rm(targetPath, { force: true });
+          this.auditLogger.success('remove-rule', resource.name, this.type, targetPath, {
+            agent: target.agent,
+            scope: target.scope,
+          });
+          removed = true;
+        }
+      }
+
+      if (!removed) {
+        this.auditLogger.warning('remove-rule-not-found', resource.name, this.type, {
           agent: target.agent,
           scope: target.scope,
         });
-        continue;
       }
-
-      // Remove the skill directory
-      await rm(targetPath, { recursive: true, force: true });
-      this.auditLogger.success('remove-skill', resource.name, this.type, targetPath, {
-        agent: target.agent,
-        scope: target.scope,
-      });
     }
   }
 
   /**
-   * List installed skills by scanning agent directories
+   * List installed rules by scanning agent directories
    */
   async list(scope: 'global' | 'project' | 'both'): Promise<ListResult> {
     const resourcesMap: Map<string, InstalledResource> = new Map();
@@ -249,68 +262,46 @@ export class SkillsHandler implements ResourceHandler {
 
           const entries = await readdir(installPath, { withFileTypes: true });
           for (const entry of entries) {
-            if (entry.isDirectory() || entry.isSymbolicLink()) {
-              const skillDir = join(installPath, entry.name);
-              const skillFilePath = join(skillDir, SKILL_FILE_NAME);
+            if (entry.isFile() || entry.isSymbolicLink()) {
+              const ext = extname(entry.name);
+              if (RULE_FILE_EXTENSIONS.includes(ext as (typeof RULE_FILE_EXTENSIONS)[number])) {
+                const rulePath = join(installPath, entry.name);
+                const content = await readFile(rulePath, 'utf-8');
+                const metadata = this.parseRuleMetadata(content, rulePath);
 
-              if (existsSync(skillFilePath)) {
-                const content = await readFile(skillFilePath, 'utf-8');
-                const metadata = this.parseSkillMetadata(content);
-
-                const resourceName = entry.name;
-                let resource = resourcesMap.get(resourceName);
+                const filenameBasedName = basename(entry.name, ext);
+                const resourceKey = metadata.name || filenameBasedName;
+                let resource = resourcesMap.get(resourceKey);
 
                 if (!resource) {
-                  // Try to infer source if it's a symlink
-                  let source = '';
-                  let sourceType: SourceType = 'local';
-                  if (entry.isSymbolicLink()) {
-                    try {
-                      const linkTarget = await readlink(skillDir);
-                      if (linkTarget.includes('node_modules')) {
-                        sourceType = 'npm';
-                        // Extract package name from path
-                        const parts = linkTarget.split(sep);
-                        const nmIndex = parts.indexOf('node_modules');
-                        if (nmIndex !== -1 && nmIndex + 1 < parts.length) {
-                          source = parts[nmIndex + 1];
-                          if (source.startsWith('@') && nmIndex + 2 < parts.length) {
-                            source += '/' + parts[nmIndex + 2];
-                          }
-                        }
-                      }
-                    } catch (_e) {
-                      /* ignore */
-                    }
-                  }
-
                   resource = {
                     type: this.type,
-                    name: resourceName,
+                    name: resourceKey,
                     version: metadata.version,
                     description: metadata.description || '',
                     metadata: {
-                      originalName: metadata.name || resourceName,
+                      originalName: metadata.name || filenameBasedName,
+                      globs: metadata.globs,
                     },
                     files: [],
-                    source,
-                    sourceType,
+                    source: '',
+                    sourceType: 'local',
                     sourceUrl: '',
                     installedAt: '',
                     updatedAt: '',
                     installedFor: [],
                   };
-                  resourcesMap.set(resourceName, resource);
+                  resourcesMap.set(resourceKey, resource);
                 }
 
                 const existingInstall = resource.installedFor.find(
-                  (i) => i.agent === agent && i.scope === s && i.path === skillDir,
+                  (i) => i.agent === agent && i.scope === s && i.path === rulePath,
                 );
                 if (!existingInstall) {
                   resource.installedFor.push({
                     agent,
                     scope: s,
-                    path: skillDir,
+                    path: rulePath,
                   });
                 }
               }
@@ -318,7 +309,7 @@ export class SkillsHandler implements ResourceHandler {
           }
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : String(error);
-          this.auditLogger.failure('list', 'skills', this.type, errorMessage, installPath);
+          this.auditLogger.failure('list', 'rules', this.type, errorMessage, installPath);
           errors.push({
             agent,
             scope: s,
@@ -335,30 +326,18 @@ export class SkillsHandler implements ResourceHandler {
   }
 
   /**
-   * Validate a skill resource
+   * Validate a rule resource
    */
   async validate(resource: Resource): Promise<ValidationResult> {
     const errors: string[] = [];
     const warnings: string[] = [];
 
-    // Check required fields
     if (!resource.name) {
-      errors.push('Skill name is required');
+      errors.push('Rule name is required');
     }
 
-    if (!resource.description) {
-      warnings.push('Skill description is missing');
-    }
-
-    // Check files
     if (!resource.files || resource.files.length === 0) {
-      errors.push('Skill must have at least one file');
-    } else {
-      // Check for SKILL.md
-      const hasSkillFile = resource.files.some((f) => basename(f.path) === SKILL_FILE_NAME);
-      if (!hasSkillFile) {
-        warnings.push('Skill does not have a SKILL.md file');
-      }
+      errors.push('Rule must have a file');
     }
 
     return {
@@ -372,7 +351,10 @@ export class SkillsHandler implements ResourceHandler {
    * Get supported agents
    */
   getSupportedAgents(): AgentType[] {
-    return this.agentRegistry.getAllNames();
+    return this.agentRegistry.getAllNames().filter((agent: AgentType) => {
+      const config = this.agentRegistry.get(agent);
+      return config?.rulesDir !== undefined;
+    });
   }
 
   /**
@@ -384,23 +366,27 @@ export class SkillsHandler implements ResourceHandler {
       throw new Error(`Agent ${agent} not found`);
     }
 
-    if (scope === 'global' && config.globalSkillsDir) {
-      return config.globalSkillsDir;
+    if (!config.rulesDir) {
+      throw new Error(`Agent ${agent} does not support rules`);
+    }
+
+    if (scope === 'global' && config.globalRulesDir) {
+      return config.globalRulesDir;
     } else if (scope === 'project') {
-      return config.skillsDir;
+      return config.rulesDir;
     } else {
       throw new Error(`Invalid scope: ${scope}`);
     }
   }
 
   /**
-   * Recursively find all SKILL.md files
+   * Recursively find all rule files
    */
-  private async findSkillFiles(dir: string): Promise<string[]> {
-    const skillFiles: string[] = [];
+  private async findRuleFiles(dir: string): Promise<string[]> {
+    const ruleFiles: string[] = [];
 
     if (!existsSync(dir)) {
-      return skillFiles;
+      return ruleFiles;
     }
 
     const entries = await readdir(dir, { withFileTypes: true });
@@ -408,32 +394,41 @@ export class SkillsHandler implements ResourceHandler {
     for (const entry of entries) {
       const fullPath = join(dir, entry.name);
 
-      // Skip excluded patterns
       if (EXCLUDE_PATTERNS.some((pattern) => entry.name.includes(pattern))) {
         continue;
       }
 
       if (entry.isDirectory()) {
-        // Recurse into subdirectory
-        const subFiles = await this.findSkillFiles(fullPath);
-        skillFiles.push(...subFiles);
-      } else if (entry.isFile() && entry.name === SKILL_FILE_NAME) {
-        skillFiles.push(fullPath);
+        const subFiles = await this.findRuleFiles(fullPath);
+        ruleFiles.push(...subFiles);
+      } else if (entry.isFile()) {
+        const ext = extname(entry.name);
+        if (RULE_FILE_EXTENSIONS.includes(ext as (typeof RULE_FILE_EXTENSIONS)[number])) {
+          // Avoid picking up SKILL.md as a rule
+          if (entry.name !== 'SKILL.md') {
+            ruleFiles.push(fullPath);
+          }
+        }
       }
     }
 
-    return skillFiles;
+    return ruleFiles;
   }
 
   /**
-   * Parse metadata from SKILL.md content
+   * Parse metadata from rule content
    */
-  private parseSkillMetadata(content: string): {
+  private parseRuleMetadata(
+    content: string,
+    _filePath: string,
+  ): {
     name?: string;
     version?: string;
     description?: string;
+    globs?: string[];
   } {
-    const metadata: { name?: string; version?: string; description?: string } = {};
+    const metadata: { name?: string; version?: string; description?: string; globs?: string[] } =
+      {};
 
     // Extract front matter if present
     const frontMatterMatch = content.match(/^---\n([\s\S]*?)\n---/);
@@ -442,13 +437,26 @@ export class SkillsHandler implements ResourceHandler {
       const nameMatch = frontMatter.match(/^name:\s*(.+)$/m);
       const versionMatch = frontMatter.match(/^version:\s*(.+)$/m);
       const descMatch = frontMatter.match(/^description:\s*(.+)$/m);
+      const globsMatch = frontMatter.match(/^globs:\s*(.+)$/m);
 
       if (nameMatch) metadata.name = nameMatch[1].trim();
       if (versionMatch) metadata.version = versionMatch[1].trim();
       if (descMatch) metadata.description = descMatch[1].trim();
+
+      if (globsMatch) {
+        try {
+          const globsStr = globsMatch[1].trim();
+          if (globsStr.startsWith('[') && globsStr.endsWith(']')) {
+            metadata.globs = JSON.parse(globsStr.replace(/'/g, '"'));
+          } else {
+            metadata.globs = [globsStr.replace(/^['"]|['"]$/g, '')];
+          }
+        } catch (_e) {
+          metadata.globs = [globsMatch[1].trim()];
+        }
+      }
     }
 
-    // Extract from first heading if no front matter
     if (!metadata.name) {
       const headingMatch = content.match(/^#\s+(.+)$/m);
       if (headingMatch) {
@@ -456,53 +464,24 @@ export class SkillsHandler implements ResourceHandler {
       }
     }
 
-    // Extract description from first paragraph
-    if (!metadata.description) {
-      const paragraphMatch = content.match(/\n\n(.+?)(?:\n\n|$)/);
-      if (paragraphMatch) {
-        metadata.description = paragraphMatch[1].trim();
-      }
-    }
-
     return metadata;
   }
 
   /**
-   * Collect all files in a skill directory
+   * Generate config hash for update detection
    */
-  private async collectSkillFiles(dir: string, baseDir: string = dir): Promise<ResourceFile[]> {
-    const files: ResourceFile[] = [];
-
-    if (!existsSync(dir)) {
-      return files;
+  private generateConfigHash(
+    metadata: { name?: string; version?: string; description?: string; globs?: string[] },
+    content: string,
+  ): string {
+    const str = JSON.stringify(metadata) + content;
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = (hash << 5) - hash + char;
+      hash = hash & hash;
     }
-
-    const entries = await readdir(dir, { withFileTypes: true });
-
-    for (const entry of entries) {
-      const fullPath = join(dir, entry.name);
-
-      // Skip excluded patterns
-      if (EXCLUDE_PATTERNS.some((pattern) => entry.name.includes(pattern))) {
-        continue;
-      }
-
-      if (entry.isDirectory()) {
-        const subFiles = await this.collectSkillFiles(fullPath, baseDir);
-        files.push(...subFiles);
-      } else if (entry.isFile()) {
-        const content = await readFile(fullPath, 'utf-8');
-        const stats = await stat(fullPath);
-
-        files.push({
-          path: relative(baseDir, fullPath),
-          content,
-          mode: stats.mode,
-        });
-      }
-    }
-
-    return files;
+    return Math.abs(hash).toString(16);
   }
 
   /**

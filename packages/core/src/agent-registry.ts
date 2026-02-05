@@ -30,6 +30,8 @@ export class AgentRegistry {
       displayName: 'Claude Code',
       skillsDir: join(this.projectRoot, '.claude', 'skills'),
       globalSkillsDir: join(homedir(), '.claude', 'skills'),
+      rulesDir: join(this.projectRoot, '.claude', 'rules'),
+      globalRulesDir: join(homedir(), '.claude', 'rules'),
       hooksDir: join(this.projectRoot, '.claude', 'hooks'),
       globalHooksDir: join(homedir(), '.claude', 'hooks'),
       subagentsDir: join(this.projectRoot, '.claude', 'agents'),
@@ -47,8 +49,10 @@ export class AgentRegistry {
     this.register({
       name: 'cursor',
       displayName: 'Cursor',
-      skillsDir: join(this.projectRoot, '.cursor', 'rules'),
-      globalSkillsDir: join(homedir(), '.cursor', 'rules'),
+      skillsDir: join(this.projectRoot, '.cursor', 'fabric-skills'),
+      globalSkillsDir: join(homedir(), '.cursor', 'fabric-skills'),
+      rulesDir: join(this.projectRoot, '.cursor', 'rules'),
+      globalRulesDir: join(homedir(), '.cursor', 'rules'),
       hooksDir: join(this.projectRoot, '.cursor', 'hooks'),
       globalHooksDir: join(homedir(), '.cursor', 'hooks'),
       subagentsDir: join(this.projectRoot, '.cursor', 'agents'),
@@ -68,6 +72,8 @@ export class AgentRegistry {
       displayName: 'Gemini CLI (Codex)',
       skillsDir: join(this.projectRoot, '.codex', 'skills'),
       globalSkillsDir: join(homedir(), '.codex', 'skills'),
+      rulesDir: join(this.projectRoot, '.codex', 'rules'),
+      globalRulesDir: join(homedir(), '.codex', 'rules'),
       hooksDir: join(this.projectRoot, '.codex', 'hooks'),
       globalHooksDir: join(homedir(), '.codex', 'hooks'),
       subagentsDir: join(this.projectRoot, '.codex', 'agents'),
@@ -85,8 +91,10 @@ export class AgentRegistry {
     this.register({
       name: 'windsurf',
       displayName: 'Windsurf',
-      skillsDir: join(this.projectRoot, '.windsurf', 'rules'),
-      globalSkillsDir: join(homedir(), '.windsurf', 'rules'),
+      skillsDir: join(this.projectRoot, '.windsurf', 'fabric-skills'),
+      globalSkillsDir: join(homedir(), '.windsurf', 'fabric-skills'),
+      rulesDir: join(this.projectRoot, '.windsurf', 'rules'),
+      globalRulesDir: join(homedir(), '.windsurf', 'rules'),
       hooksDir: join(this.projectRoot, '.windsurf', 'hooks'),
       globalHooksDir: join(homedir(), '.windsurf', 'hooks'),
       subagentsDir: join(this.projectRoot, '.windsurf', 'agents'),
@@ -107,6 +115,8 @@ export class AgentRegistry {
       displayName: 'Aider',
       skillsDir: join(this.projectRoot, '.aider', 'skills'),
       globalSkillsDir: join(homedir(), '.aider', 'skills'),
+      rulesDir: join(this.projectRoot, '.aider', 'rules'),
+      globalRulesDir: join(homedir(), '.aider', 'rules'),
       subagentsDir: join(this.projectRoot, '.aider', 'agents'),
       globalSubagentsDir: join(homedir(), '.aider', 'agents'),
       detectInstalled: async () => {
@@ -122,6 +132,8 @@ export class AgentRegistry {
       displayName: 'Continue',
       skillsDir: join(this.projectRoot, '.continue', 'skills'),
       globalSkillsDir: join(homedir(), '.continue', 'skills'),
+      rulesDir: join(this.projectRoot, '.continue', 'rules'),
+      globalRulesDir: join(homedir(), '.continue', 'rules'),
       hooksDir: join(this.projectRoot, '.continue', 'hooks'),
       globalHooksDir: join(homedir(), '.continue', 'hooks'),
       subagentsDir: join(this.projectRoot, '.continue', 'agents'),
@@ -203,6 +215,15 @@ export class AgentRegistry {
   }
 
   /**
+   * Get the rules directory for an agent
+   */
+  getRulesDir(agent: AgentType, global: boolean = false): string | undefined {
+    const config = this.get(agent);
+    if (!config) return undefined;
+    return global ? config.globalRulesDir : config.rulesDir;
+  }
+
+  /**
    * Get the hooks directory for an agent
    */
   getHooksDir(agent: AgentType, global: boolean = false): string | undefined {
@@ -240,6 +261,8 @@ export class AgentRegistry {
     switch (resourceType) {
       case 'skills':
         return this.getSkillsDir(agent, global);
+      case 'rules':
+        return this.getRulesDir(agent, global);
       case 'hooks':
         return this.getHooksDir(agent, global);
       case 'subagents':

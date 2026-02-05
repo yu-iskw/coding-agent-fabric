@@ -189,6 +189,8 @@ export interface AgentConfig {
   // Resource-specific directories
   skillsDir: string;
   globalSkillsDir?: string;
+  rulesDir?: string;
+  globalRulesDir?: string;
   hooksDir?: string;
   globalHooksDir?: string;
   subagentsDir?: string;
@@ -265,6 +267,15 @@ export interface SubagentLockEntry extends BaseResourceLockEntry {
 }
 
 /**
+ * Rule lock entry
+ */
+export interface RuleLockEntry extends BaseResourceLockEntry {
+  type: 'rules';
+  globs?: string[];
+  configHash: string;
+}
+
+/**
  * Plugin-managed resource lock entry
  */
 export interface PluginResourceLockEntry extends BaseResourceLockEntry {
@@ -274,7 +285,11 @@ export interface PluginResourceLockEntry extends BaseResourceLockEntry {
 /**
  * Union type for all resource lock entries
  */
-export type ResourceLockEntry = SkillLockEntry | SubagentLockEntry | PluginResourceLockEntry;
+export type ResourceLockEntry =
+  | SkillLockEntry
+  | SubagentLockEntry
+  | RuleLockEntry
+  | PluginResourceLockEntry;
 
 /**
  * Audit outcome
@@ -294,6 +309,23 @@ export interface AuditRecord {
   outcome: AuditOutcome;
   details?: Record<string, unknown>;
   error?: string;
+}
+
+/**
+ * List error information
+ */
+export interface ListError {
+  agent: AgentType;
+  scope: Scope;
+  error: string;
+}
+
+/**
+ * Result of listing resources
+ */
+export interface ListResult<T extends InstalledResource = InstalledResource> {
+  resources: T[];
+  errors: ListError[];
 }
 
 /**

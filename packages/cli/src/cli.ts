@@ -7,6 +7,7 @@
 import { Command } from 'commander';
 import { createSkillsCommand } from './commands/skills.js';
 import { createSubagentsCommand } from './commands/subagents.js';
+import { createRulesCommand } from './commands/rules.js';
 import { createPluginCommand } from './commands/plugin.js';
 import { registerSystemCommands } from './commands/system.js';
 
@@ -20,6 +21,7 @@ program
 // Add commands
 program.addCommand(createSkillsCommand());
 program.addCommand(createSubagentsCommand());
+program.addCommand(createRulesCommand());
 program.addCommand(createPluginCommand());
 
 // Register system commands (doctor, check, update)
