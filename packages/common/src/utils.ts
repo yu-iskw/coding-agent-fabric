@@ -266,6 +266,34 @@ export async function retry<T>(
 }
 
 /**
+ * Check if a filename should be excluded based on EXCLUDE_PATTERNS.
+ * Handles exact matches and simple wildcard patterns (*.ext, prefix.*).
+ */
+export function isExcludedName(name: string, patterns: readonly string[]): boolean {
+  for (const pattern of patterns) {
+    // Wildcard at start: *.log matches error.log
+    if (pattern.startsWith('*')) {
+      const suffix = pattern.slice(1);
+      if (name.endsWith(suffix)) {
+        return true;
+      }
+    }
+    // Wildcard at end: .env.* matches .env.local
+    else if (pattern.endsWith('*')) {
+      const prefix = pattern.slice(0, -1);
+      if (name.startsWith(prefix)) {
+        return true;
+      }
+    }
+    // Exact match
+    else if (name === pattern) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
  * Sanitize a file name (remove invalid characters and prevent path traversal)
  */
 export function sanitizeFileName(name: string): string {

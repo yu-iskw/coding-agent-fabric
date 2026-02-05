@@ -25,6 +25,7 @@ import {
   EXCLUDE_PATTERNS,
   sanitizeFileName,
   safeJoin,
+  isExcludedName,
 } from '@coding-agent-fabric/common';
 import { ResourceHandler } from '@coding-agent-fabric/plugin-api';
 import { AgentRegistry } from './agent-registry.js';
@@ -459,7 +460,7 @@ export class SubagentsHandler implements ResourceHandler {
       const fullPath = join(dir, entry.name);
 
       // Skip excluded patterns
-      if (EXCLUDE_PATTERNS.some((pattern) => entry.name.includes(pattern))) {
+      if (isExcludedName(entry.name, EXCLUDE_PATTERNS)) {
         continue;
       }
 
@@ -609,7 +610,7 @@ export class SubagentsHandler implements ResourceHandler {
       const fullPath = join(dir, entry.name);
 
       // Skip excluded patterns
-      if (EXCLUDE_PATTERNS.some((pattern) => entry.name.includes(pattern))) {
+      if (isExcludedName(entry.name, EXCLUDE_PATTERNS)) {
         continue;
       }
 

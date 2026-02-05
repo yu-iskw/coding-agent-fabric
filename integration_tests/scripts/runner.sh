@@ -122,7 +122,7 @@ echo "Scenario 11: Installing real skills from microsoft/skills via GitHub URL..
 caf skills add https://github.com/microsoft/skills --yes --force || { echo -e "${RED}Failed to add microsoft/skills via URL${NC}"; exit 1; }
 
 echo "Verifying microsoft-skills installation..."
-caf skills list | grep "azure-cosmos-db-py" || { echo -e "${RED}microsoft-skills verification failed${NC}"; exit 1; }
+caf skills list | grep "github-skills-azure-cosmos-db-py" || { echo -e "${RED}microsoft-skills verification failed${NC}"; exit 1; }
 
 # 12. Remove a skill
 echo "Scenario 12: Removing a skill..."
