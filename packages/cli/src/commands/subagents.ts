@@ -10,6 +10,7 @@ import { logger } from '../utils/logger.js';
 import { spinner } from '../utils/spinner.js';
 import { confirmAction, selectAgents, selectScope, selectResources } from '../utils/prompts.js';
 import { pnpmAdd, resolvePackagePath } from '../utils/pnpm.js';
+import { isGitUrl, cloneRepo } from '../utils/git.js';
 import { cwd } from 'node:process';
 
 /**
@@ -106,82 +107,104 @@ async function addSubagents(source: string, options: AddOptions): Promise<void> 
     projectRoot,
   });
 
-  // Use pnpm to add the package
-  spinner.start(`Installing ${source} via pnpm...`);
-  const packageName = await pnpmAdd(source, projectRoot);
-  const packagePath = resolvePackagePath(packageName, projectRoot);
-  spinner.succeed(`Installed ${packageName}`);
+  // Use pnpm to add the package or git to clone
+  let packagePath: string;
+  let packageName: string;
+  let cleanup: (() => Promise<void>) | undefined;
 
-  // Discover resources from the installed package
-  spinner.start('Discovering subagents...');
-  const resources = await subagentsHandler.discoverFromPath(packagePath);
-  spinner.succeed(`Found ${resources.length} subagent(s)`);
-
-  if (resources.length === 0) {
-    logger.warn('No subagents found in source');
-    return;
+  if (isGitUrl(source)) {
+    // Git source
+    spinner.start(`Cloning ${source}...`);
+    const result = await cloneRepo(source);
+    packagePath = result.path;
+    packageName = source;
+    cleanup = result.cleanup;
+    spinner.succeed(`Cloned ${source}`);
+  } else {
+    // NPM or local source
+    spinner.start(`Installing ${source} via pnpm...`);
+    packageName = await pnpmAdd(source, projectRoot);
+    packagePath = resolvePackagePath(packageName, projectRoot);
+    spinner.succeed(`Installed ${packageName}`);
   }
 
-  // Select resources (if interactive)
-  let selectedResources = resources;
-  if (!options.yes && resources.length > 1) {
-    selectedResources = await selectResources(resources);
-  }
+  try {
+    // Discover resources from the installed package
+    spinner.start('Discovering subagents...');
+    const resources = await subagentsHandler.discoverFromPath(packagePath);
+    spinner.succeed(`Found ${resources.length} subagent(s)`);
 
-  if (selectedResources.length === 0) {
-    logger.info('No subagents selected');
-    return;
-  }
-
-  // Select target agents
-  let targetAgents = options.agent ? [options.agent] : subagentsHandler.getSupportedAgents();
-  if (!options.yes && !options.agent) {
-    targetAgents = await selectAgents(subagentsHandler.getSupportedAgents());
-  }
-
-  if (targetAgents.length === 0) {
-    logger.warn('No agents selected');
-    return;
-  }
-
-  // Select scope
-  const scope = options.global
-    ? 'global'
-    : options.scope || (!options.yes ? await selectScope() : 'project');
-
-  // Confirm installation
-  if (!options.yes) {
-    logger.log('\nInstallation summary:');
-    logger.log(`  Resources: ${selectedResources.map((r) => r.name).join(', ')}`);
-    logger.log(`  Agents: ${targetAgents.join(', ')}`);
-    logger.log(`  Scope: ${scope}`);
-
-    const confirmed = await confirmAction('Proceed with installation?', true);
-    if (!confirmed) {
-      logger.info('Installation cancelled');
+    if (resources.length === 0) {
+      logger.warn('No subagents found in source');
       return;
     }
+
+    // Select resources (if interactive)
+    let selectedResources = resources;
+    if (!options.yes && resources.length > 1) {
+      selectedResources = await selectResources(resources);
+    }
+
+    if (selectedResources.length === 0) {
+      logger.info('No subagents selected');
+      return;
+    }
+
+    // Select target agents
+    let targetAgents = options.agent ? [options.agent] : subagentsHandler.getSupportedAgents();
+    if (!options.yes && !options.agent) {
+      targetAgents = await selectAgents(subagentsHandler.getSupportedAgents());
+    }
+
+    if (targetAgents.length === 0) {
+      logger.warn('No agents selected');
+      return;
+    }
+
+    // Select scope
+    const scope = options.global
+      ? 'global'
+      : options.scope || (!options.yes ? await selectScope() : 'project');
+
+    // Confirm installation
+    if (!options.yes) {
+      logger.log('\nInstallation summary:');
+      logger.log(`  Resources: ${selectedResources.map((r) => r.name).join(', ')}`);
+      logger.log(`  Agents: ${targetAgents.join(', ')}`);
+      logger.log(`  Scope: ${scope}`);
+
+      const confirmed = await confirmAction('Proceed with installation?', true);
+      if (!confirmed) {
+        logger.info('Installation cancelled');
+        return;
+      }
+    }
+
+    // Install each resource
+    for (const resource of selectedResources) {
+      spinner.start(`Installing ${resource.name}...`);
+
+      const targets = targetAgents.map((agent) => ({
+        agent,
+        scope,
+        mode: 'copy' as const,
+      }));
+
+      await subagentsHandler.install(resource, targets, {
+        force: options.force,
+        yes: options.yes,
+      });
+
+      spinner.succeed(`Installed ${resource.name}`);
+    }
+
+    logger.success('\nSubagents installed successfully!');
+  } finally {
+    // Clean up temporary git clone if needed
+    if (cleanup) {
+      await cleanup();
+    }
   }
-
-  // Install each resource
-  for (const resource of selectedResources) {
-    spinner.start(`Installing ${resource.name}...`);
-
-    const targets = targetAgents.map((agent) => ({
-      agent,
-      scope,
-      mode: 'copy' as const,
-    }));
-
-    await subagentsHandler.install(resource, targets, {
-      force: options.force,
-      yes: options.yes,
-    });
-
-    spinner.succeed(`Installed ${resource.name}`);
-  }
-
-  logger.success('\nSubagents installed successfully!');
 }
 
 /**

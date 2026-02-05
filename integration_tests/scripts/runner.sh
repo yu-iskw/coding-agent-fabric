@@ -225,17 +225,21 @@ caf subagents list | grep "mock-subagent" || { echo -e "${RED}Mock subagent upda
 
 # 15. Install via GitHub Shorthand
 echo "Scenario 15: Installing via GitHub Shorthand (anthropics/skills)..."
-# Note: This might fail if the repo lacks a package.json, which exposes a need for better handling
-caf skills add anthropics/skills --yes --force || echo -e "${RED}Note: Installation from shorthand failed as expected or due to missing package.json${NC}"
+caf skills add anthropics/skills --yes --force || { echo -e "${RED}Installation from shorthand failed${NC}"; exit 1; }
+caf skills list | grep "document-skills" || caf skills list | grep -i "pdf" || { echo -e "${RED}Shorthand installation verification failed${NC}"; exit 1; }
 
 # 16. Install via GitHub URL
 echo "Scenario 16: Installing via GitHub URL (vercel-labs/agent-skills)..."
-caf skills add https://github.com/vercel-labs/agent-skills --yes --force || echo -e "${RED}Note: Installation from URL failed as expected or due to missing package.json${NC}"
+caf skills add https://github.com/vercel-labs/agent-skills --yes --force || { echo -e "${RED}Installation from URL failed${NC}"; exit 1; }
+caf skills list | grep "web-design-guidelines" || { echo -e "${RED}URL installation verification failed${NC}"; exit 1; }
 
-# 17. Verify name inference (Scenario 17 logic)
-echo "Scenario 17: Verifying name inference..."
-# This is implicitly tested by Scenario 15/16 if they succeed, 
-# but we can verify it by checking if the package was added to devDependencies with the correct name
-grep -q "\"agent-skills\":" /test-workspace/package.json || grep -q "\"skills\":" /test-workspace/package.json || { echo -e "${RED}Remote package not found in package.json${NC}"; exit 1; }
+# 17. Verify that package.json was NOT modified by git-based adds
+echo "Scenario 17: Verifying package.json was not modified for git-based adds..."
+# Since these are git clones to temp dirs and then installed via handler, 
+# they shouldn't trigger pnpmAdd which modifies package.json
+if grep -q "anthropics/skills" /test-workspace/package.json || grep -q "vercel-labs/agent-skills" /test-workspace/package.json; then
+    echo -e "${RED}package.json was unexpectedly modified for git-based installation${NC}"
+    exit 1
+fi
 
 echo -e "${GREEN}Integration tests with real skills passed!${NC}"

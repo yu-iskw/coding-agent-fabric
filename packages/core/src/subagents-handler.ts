@@ -180,7 +180,7 @@ export class SubagentsHandler implements ResourceHandler {
   async remove(
     resource: Resource,
     targets: InstallTarget[],
-    options: RemoveOptions,
+    _options: RemoveOptions,
   ): Promise<void> {
     for (const target of targets) {
       const installPath = this.getInstallPath(target.agent, target.scope);

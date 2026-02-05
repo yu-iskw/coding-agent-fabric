@@ -16,6 +16,7 @@ import {
   selectResources,
 } from '../utils/prompts.js';
 import { pnpmAdd, resolvePackagePath } from '../utils/pnpm.js';
+import { isGitUrl, cloneRepo } from '../utils/git.js';
 import { cwd } from 'node:process';
 
 /**
@@ -109,95 +110,111 @@ async function addSkills(source: string, options: AddOptions): Promise<void> {
     projectRoot,
   });
 
-  // Use pnpm to add the package
+  // Use pnpm to add the package or git to clone
   let packagePath: string;
   let packageName: string;
+  let cleanup: (() => Promise<void>) | undefined;
 
-  if (source.startsWith('.') || source.startsWith('/') || source.startsWith('~')) {
+  if (isGitUrl(source)) {
+    // Git source
+    spinner.start(`Cloning ${source}...`);
+    const result = await cloneRepo(source);
+    packagePath = result.path;
+    packageName = source;
+    cleanup = result.cleanup;
+    spinner.succeed(`Cloned ${source}`);
+  } else if (source.startsWith('.') || source.startsWith('/') || source.startsWith('~')) {
     // Local source
     packageName = await pnpmAdd(source, projectRoot);
     packagePath = resolvePackagePath(packageName, projectRoot);
   } else {
-    // Remote source (npm or git)
+    // Remote source (npm)
     packageName = await pnpmAdd(source, projectRoot);
     packagePath = resolvePackagePath(packageName, projectRoot);
   }
 
-  // Discover resources from the installed package
-  spinner.start('Discovering skills...');
-  const resources = await skillsHandler.discoverFromPath(packagePath, {
-    namingStrategy: options.namingStrategy as NamingStrategy,
-    categories: options.categories,
-  });
-  spinner.succeed(`Found ${resources.length} skill(s) in ${packageName}`);
+  try {
+    // Discover resources from the installed package
+    spinner.start('Discovering skills...');
+    const resources = await skillsHandler.discoverFromPath(packagePath, {
+      namingStrategy: options.namingStrategy as NamingStrategy,
+      categories: options.categories,
+    });
+    spinner.succeed(`Found ${resources.length} skill(s) in ${packageName}`);
 
-  if (resources.length === 0) {
-    logger.warn('No skills found in source');
-    return;
-  }
-
-  // Select resources (if interactive)
-  let selectedResources = resources;
-  if (!options.yes && resources.length > 1) {
-    selectedResources = await selectResources(resources);
-  }
-
-  if (selectedResources.length === 0) {
-    logger.info('No skills selected');
-    return;
-  }
-
-  // Select target agents
-  let targetAgents = options.agent ? [options.agent] : skillsHandler.getSupportedAgents();
-  if (!options.yes && !options.agent) {
-    targetAgents = await selectAgents(skillsHandler.getSupportedAgents());
-  }
-
-  if (targetAgents.length === 0) {
-    logger.warn('No agents selected');
-    return;
-  }
-
-  // Select scope and mode
-  const scope = options.global
-    ? 'global'
-    : options.scope || (!options.yes ? await selectScope() : 'project');
-  const mode = options.mode || (!options.yes ? await selectMode() : 'copy');
-
-  // Confirm installation
-  if (!options.yes) {
-    logger.log('\nInstallation summary:');
-    logger.log(`  Resources: ${selectedResources.map((r) => r.name).join(', ')}`);
-    logger.log(`  Agents: ${targetAgents.join(', ')}`);
-    logger.log(`  Scope: ${scope}`);
-    logger.log(`  Mode: ${mode}`);
-
-    const confirmed = await confirmAction('Proceed with installation?', true);
-    if (!confirmed) {
-      logger.info('Installation cancelled');
+    if (resources.length === 0) {
+      logger.warn('No skills found in source');
       return;
     }
+
+    // Select resources (if interactive)
+    let selectedResources = resources;
+    if (!options.yes && resources.length > 1) {
+      selectedResources = await selectResources(resources);
+    }
+
+    if (selectedResources.length === 0) {
+      logger.info('No skills selected');
+      return;
+    }
+
+    // Select target agents
+    let targetAgents = options.agent ? [options.agent] : skillsHandler.getSupportedAgents();
+    if (!options.yes && !options.agent) {
+      targetAgents = await selectAgents(skillsHandler.getSupportedAgents());
+    }
+
+    if (targetAgents.length === 0) {
+      logger.warn('No agents selected');
+      return;
+    }
+
+    // Select scope and mode
+    const scope = options.global
+      ? 'global'
+      : options.scope || (!options.yes ? await selectScope() : 'project');
+    const mode = options.mode || (!options.yes ? await selectMode() : 'copy');
+
+    // Confirm installation
+    if (!options.yes) {
+      logger.log('\nInstallation summary:');
+      logger.log(`  Resources: ${selectedResources.map((r) => r.name).join(', ')}`);
+      logger.log(`  Agents: ${targetAgents.join(', ')}`);
+      logger.log(`  Scope: ${scope}`);
+      logger.log(`  Mode: ${mode}`);
+
+      const confirmed = await confirmAction('Proceed with installation?', true);
+      if (!confirmed) {
+        logger.info('Installation cancelled');
+        return;
+      }
+    }
+
+    // Install each resource
+    for (const resource of selectedResources) {
+      spinner.start(`Installing ${resource.name}...`);
+
+      const targets = targetAgents.map((agent) => ({
+        agent,
+        scope,
+        mode,
+      }));
+
+      await skillsHandler.install(resource, targets, {
+        force: options.force,
+        yes: options.yes,
+      });
+
+      spinner.succeed(`Installed ${resource.name}`);
+    }
+
+    logger.success('\nSkills installed successfully!');
+  } finally {
+    // Clean up temporary git clone if needed
+    if (cleanup) {
+      await cleanup();
+    }
   }
-
-  // Install each resource
-  for (const resource of selectedResources) {
-    spinner.start(`Installing ${resource.name}...`);
-
-    const targets = targetAgents.map((agent) => ({
-      agent,
-      scope,
-      mode,
-    }));
-
-    await skillsHandler.install(resource, targets, {
-      force: options.force,
-      yes: options.yes,
-    });
-
-    spinner.succeed(`Installed ${resource.name}`);
-  }
-
-  logger.success('\nSkills installed successfully!');
 }
 
 /**
