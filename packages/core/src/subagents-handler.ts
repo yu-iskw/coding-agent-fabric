@@ -175,12 +175,28 @@ export class SubagentsHandler implements ResourceHandler {
    */
   async remove(
     resource: Resource,
-    targets: InstallTarget[],
-    _options: RemoveOptions,
-  ): Promise<void> {
-    for (const target of targets) {
-      const installPath = this.getInstallPath(target.agent, target.scope);
+    // Create the target directory for the subagent
+    const subagentInstallDir = join(installPath, resource.name);
+    await mkdir(subagentInstallDir, { recursive: true });
 
+    // Install all files
+    for (const file of resource.files) {
+      const targetFilePath = join(subagentInstallDir, basename(file.path));
+
+      // Special handling for the main config file to allow format conversion
+      if (SUBAGENT_FILE_NAMES.some(name => basename(file.path).startsWith(name.split('.')[0]))) {
+        const targetFormat = this.getTargetFormat(target.agent);
+        const targetFileName = this.getTargetFileName(resource.name, targetFormat);
+        const configTargetPath = join(installPath, targetFileName);
+        const sourceFormat = (resource.metadata.format as string) || 'coding-agent-fabric-json';
+        const configContent = await this.convertFormat(resource, sourceFormat, targetFormat);
+        await writeFile(configTargetPath, configContent, 'utf-8');
+      } else if (file.content !== undefined) {
+        // Copy other files as-is
+        await writeFile(targetFilePath, file.content, { mode: file.mode });
+      }
+    }
+    console.log(`Installed subagent ${resource.name} to ${installPath}`);
       const targetFormat = this.getTargetFormat(target.agent);
       const targetFileName = this.getTargetFileName(resource.name, targetFormat);
       const targetPath = join(installPath, targetFileName);
