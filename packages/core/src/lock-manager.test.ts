@@ -285,7 +285,7 @@ describe('LockManager', () => {
       const rolledBack = await lockManager.rollbackResource('rollback-skill');
       expect(rolledBack.version).toBe('1.0.0');
       expect(rolledBack.sourceUrl).toBe('url1');
-      expect(rolledBack.history?.length).toBe(0);
+      expect(rolledBack.history?.length).toBe(1);
 
       const current = await lockManager.getResource('rollback-skill');
       expect(current?.version).toBe('1.0.0');

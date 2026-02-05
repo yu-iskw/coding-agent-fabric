@@ -67,8 +67,8 @@ export class SkillsHandler implements ResourceHandler {
   async discover(source: ParsedSource, options?: DiscoverOptions): Promise<Resource[]> {
     let localPath = source.localPath;
 
-    // If not a local source, download it first
-    if (source.type !== 'local' || !localPath) {
+    // If local path is not provided, download it first
+    if (!localPath) {
       const result = await this.sourceParser.parse(source.url);
       localPath = result.localDir;
     }
@@ -141,7 +141,7 @@ export class SkillsHandler implements ResourceHandler {
       // Ensure install directory exists
       await mkdir(installPath, { recursive: true });
 
-      const targetPath = join(installPath, resource.name);
+      const targetPath = join(installPath, sanitizeFileName(resource.name));
 
       // Check if already exists
       if (existsSync(targetPath) && !options.force) {
@@ -188,7 +188,7 @@ export class SkillsHandler implements ResourceHandler {
     for (const target of targets) {
       const installPath = this.getInstallPath(target.agent, target.scope);
 
-      const targetPath = join(installPath, resource.name);
+      const targetPath = join(installPath, sanitizeFileName(resource.name));
 
       if (!existsSync(targetPath)) {
         console.warn(`Skill ${resource.name} not found at ${targetPath}`);

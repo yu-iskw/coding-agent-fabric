@@ -266,10 +266,15 @@ export async function retry<T>(
 }
 
 /**
- * Sanitize a file name (remove invalid characters)
+ * Sanitize a file name (remove invalid characters and prevent path traversal)
  */
 export function sanitizeFileName(name: string): string {
-  return name.replace(/[^a-zA-Z0-9._-]/g, '-').replace(/-+/g, '-');
+  return name
+    .replace(/[\\/]/g, '-') // Replace path separators with hyphens
+    .replace(/^\.+/, '') // Remove leading dots (prevents hidden files and ../)
+    .replace(/[^a-zA-Z0-9._-]/g, '-') // Keep only safe characters
+    .replace(/-+/g, '-') // Replace multiple hyphens with one
+    .replace(/^-+|-+$/g, ''); // Remove leading/trailing hyphens
 }
 
 /**

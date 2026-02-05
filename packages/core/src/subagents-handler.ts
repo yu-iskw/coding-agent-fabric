@@ -18,7 +18,11 @@ import type {
   Scope,
   ResourceFile,
 } from '@coding-agent-fabric/common';
-import { SUBAGENT_FILE_NAMES, EXCLUDE_PATTERNS } from '@coding-agent-fabric/common';
+import {
+  SUBAGENT_FILE_NAMES,
+  EXCLUDE_PATTERNS,
+  sanitizeFileName,
+} from '@coding-agent-fabric/common';
 import { ResourceHandler } from '@coding-agent-fabric/plugin-api';
 import { AgentRegistry } from './agent-registry.js';
 import { LockManager } from './lock-manager.js';
@@ -85,8 +89,8 @@ export class SubagentsHandler implements ResourceHandler {
   async discover(source: ParsedSource, _options?: DiscoverOptions): Promise<Resource[]> {
     let localPath = source.localPath;
 
-    // If not a local source, download it first
-    if (source.type !== 'local' || !localPath) {
+    // If local path is not provided, download it first
+    if (!localPath) {
       const result = await this.sourceParser.parse(source.url);
       localPath = result.localDir;
     }
@@ -350,19 +354,48 @@ export class SubagentsHandler implements ResourceHandler {
   }
 
   /**
-   * Simple YAML parser (for basic key-value pairs)
+   * Simple YAML parser (for basic key-value pairs and multi-line strings)
    * In production, use a proper YAML library like js-yaml
    */
   private parseSimpleYaml(content: string): ClaudeCodeYamlConfig {
     const config: ClaudeCodeYamlConfig = {};
     const lines = content.split('\n');
+    let currentKey: string | null = null;
+    let inMultiLine = false;
+    let multiLineContent: string[] = [];
 
     for (const line of lines) {
-      const match = line.match(/^(\w+):\s*(.+)$/);
+      if (inMultiLine && currentKey) {
+        // Multi-line content is indented (using 2 spaces as convention)
+        if (line.trim() === '' || line.startsWith('  ')) {
+          multiLineContent.push(line.startsWith('  ') ? line.substring(2) : line);
+          continue;
+        } else {
+          config[currentKey] = multiLineContent.join('\n').trim();
+          inMultiLine = false;
+          multiLineContent = [];
+          currentKey = null;
+        }
+      }
+
+      // Strip comments before matching
+      const lineWithoutComment = line.split('#')[0];
+      const match = lineWithoutComment.match(/^(\w+):\s*(.*)$/);
       if (match) {
         const [, key, value] = match;
-        config[key] = value.trim();
+        const trimmedValue = value.trim();
+        if (trimmedValue === '|' || trimmedValue === '>') {
+          currentKey = key;
+          inMultiLine = true;
+          multiLineContent = [];
+        } else {
+          config[key] = trimmedValue.replace(/^['"]|['"]$/g, '');
+        }
       }
+    }
+
+    if (inMultiLine && currentKey) {
+      config[currentKey] = multiLineContent.join('\n').trim();
     }
 
     return config;
@@ -436,10 +469,11 @@ export class SubagentsHandler implements ResourceHandler {
     name: string,
     format: 'coding-agent-fabric-json' | 'claude-code-yaml',
   ): string {
+    const safeName = sanitizeFileName(name);
     if (format === 'claude-code-yaml') {
-      return `${name}.yaml`;
+      return `${safeName}.yaml`;
     }
-    return `${name}.json`;
+    return `${safeName}.json`;
   }
 
   /**

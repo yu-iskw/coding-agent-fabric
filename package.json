@@ -13,7 +13,7 @@
   "main": "index.js",
   "scripts": {
     "build": "pnpm --recursive build",
-    "clean": "find packages -type d -name dist -prune -exec rm -rf {} +",
+    "clean": "rimraf \"packages/**/dist\"",
     "format": "pnpm format:trunk",
     "format:all": "pnpm format:trunk-all",
     "format:eslint": "eslint . --fix",
@@ -35,6 +35,7 @@
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.5",
     "prettier": "^3.8.1",
+    "rimraf": "^6.1.2",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.54.0",
     "vitest": "^4.0.18"

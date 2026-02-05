@@ -85,7 +85,7 @@ describe('SourceParser', () => {
       // We don't want to actually download in tests, so we expect a 404 or connection error
       // since 'owner/repo' doesn't exist
       await expect(parser.parse('owner/repo')).rejects.toThrow(/Failed to download GitHub source/);
-    });
+    }, 15000); // Increase timeout due to retry logic with backoff
   });
 
   describe('npm sources', () => {
@@ -95,7 +95,7 @@ describe('SourceParser', () => {
       expect(result.source.type).toBe('npm');
       expect(result.files.length).toBeGreaterThan(0);
       expect(result.files.some((f) => f.path === 'package.json')).toBe(true);
-    });
+    }, 15000); // Increase timeout for real network call
   });
 
   describe('cache directory', () => {

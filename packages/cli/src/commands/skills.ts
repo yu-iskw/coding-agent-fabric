@@ -43,7 +43,7 @@ export function createSkillsCommand(): Command {
       try {
         await addSkills(source, options);
       } catch (error) {
-        logger.error(`Failed to add skills: ${error}`);
+        logger.error(`Failed to add skills: ${error instanceof Error ? error.message : error}`);
         process.exit(1);
       }
     });
@@ -59,7 +59,7 @@ export function createSkillsCommand(): Command {
       try {
         await listSkills(options);
       } catch (error) {
-        logger.error(`Failed to list skills: ${error}`);
+        logger.error(`Failed to list skills: ${error instanceof Error ? error.message : error}`);
         process.exit(1);
       }
     });
@@ -76,7 +76,7 @@ export function createSkillsCommand(): Command {
       try {
         await removeSkill(name, options);
       } catch (error) {
-        logger.error(`Failed to remove skill: ${error}`);
+        logger.error(`Failed to remove skill: ${error instanceof Error ? error.message : error}`);
         process.exit(1);
       }
     });
@@ -90,7 +90,7 @@ export function createSkillsCommand(): Command {
       try {
         await updateSkills(options);
       } catch (error) {
-        logger.error(`Failed to update skills: ${error}`);
+        logger.error(`Failed to update skills: ${error instanceof Error ? error.message : error}`);
         process.exit(1);
       }
     });

@@ -8,6 +8,9 @@ import { join, dirname } from 'node:path';
 import {
   LockFile,
   ResourceLockEntry,
+  SkillLockEntry,
+  SubagentLockEntry,
+  PluginResourceLockEntry,
   PluginLockEntry,
   SourceMetadata,
   LockFileConfig,
@@ -139,6 +142,7 @@ export class LockManager {
         version: existing.version,
         updatedAt: existing.updatedAt,
         sourceUrl: existing.sourceUrl,
+        metadata: this.getEntryMetadata(existing),
       };
 
       if (!entry.history) {
@@ -172,19 +176,85 @@ export class LockManager {
       throw new Error(`No history found for resource "${name}"`);
     }
 
-    const previous = entry.history.shift()!;
+    const newHistory = [...(entry.history || [])];
+    const previous = newHistory.shift()!;
+
+    // Preserve the current state in the history for future rollbacks
+    const currentHistoryEntry = {
+      version: entry.version,
+      updatedAt: entry.updatedAt,
+      sourceUrl: entry.sourceUrl,
+      metadata: this.getEntryMetadata(entry),
+    };
+    newHistory.unshift(currentHistoryEntry);
+
     const rolledBackEntry: ResourceLockEntry = {
       ...entry,
       version: previous.version,
       sourceUrl: previous.sourceUrl,
       updatedAt: getCurrentTimestamp(),
-      history: entry.history,
+      history: newHistory,
     };
+
+    // Restore metadata from history if available
+    if (previous.metadata) {
+      this.setEntryMetadata(rolledBackEntry, previous.metadata);
+    }
 
     lockFile.resources[name] = rolledBackEntry;
     await this.save(lockFile);
 
     return rolledBackEntry;
+  }
+
+  /**
+   * Helper to get metadata from a lock entry based on its type
+   */
+  private getEntryMetadata(entry: ResourceLockEntry): Record<string, unknown> | undefined {
+    if (entry.type === 'skills') {
+      const e = entry as SkillLockEntry;
+      return {
+        skillFolderHash: e.skillFolderHash,
+        categories: e.categories,
+        namingStrategy: e.namingStrategy,
+        originalName: e.originalName,
+        installedName: e.installedName,
+        sourcePath: e.sourcePath,
+      };
+    } else if (entry.type === 'subagents') {
+      const e = entry as SubagentLockEntry;
+      return {
+        model: e.model,
+        format: e.format,
+        configHash: e.configHash,
+      };
+    } else {
+      return (entry as PluginResourceLockEntry).metadata;
+    }
+  }
+
+  /**
+   * Helper to set metadata on a lock entry based on its type
+   */
+  private setEntryMetadata(entry: ResourceLockEntry, metadata: Record<string, unknown>): void {
+    if (entry.type === 'skills') {
+      const e = entry as SkillLockEntry;
+      const m = metadata as any;
+      if (m.skillFolderHash) e.skillFolderHash = m.skillFolderHash;
+      if (m.categories) e.categories = m.categories;
+      if (m.namingStrategy) e.namingStrategy = m.namingStrategy;
+      if (m.originalName) e.originalName = m.originalName;
+      if (m.installedName) e.installedName = m.installedName;
+      if (m.sourcePath) e.sourcePath = m.sourcePath;
+    } else if (entry.type === 'subagents') {
+      const e = entry as SubagentLockEntry;
+      const m = metadata as any;
+      if (m.model) e.model = m.model;
+      if (m.format) e.format = m.format;
+      if (m.configHash) e.configHash = m.configHash;
+    } else {
+      (entry as PluginResourceLockEntry).metadata = metadata;
+    }
   }
 
   /**

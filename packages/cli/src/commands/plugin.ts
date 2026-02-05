@@ -27,7 +27,7 @@ export function createPluginCommand(): Command {
       try {
         await addPlugin(source, options);
       } catch (error) {
-        logger.error(`Failed to add plugin: ${error}`);
+        logger.error(`Failed to add plugin: ${error instanceof Error ? error.message : error}`);
         process.exit(1);
       }
     });
@@ -40,7 +40,7 @@ export function createPluginCommand(): Command {
       try {
         await listPlugins();
       } catch (error) {
-        logger.error(`Failed to list plugins: ${error}`);
+        logger.error(`Failed to list plugins: ${error instanceof Error ? error.message : error}`);
         process.exit(1);
       }
     });
@@ -55,7 +55,7 @@ export function createPluginCommand(): Command {
       try {
         await removePlugin(id, options);
       } catch (error) {
-        logger.error(`Failed to remove plugin: ${error}`);
+        logger.error(`Failed to remove plugin: ${error instanceof Error ? error.message : error}`);
         process.exit(1);
       }
     });

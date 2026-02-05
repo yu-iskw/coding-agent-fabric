@@ -67,7 +67,7 @@ async function runDoctor(): Promise<void> {
       logger.log(`  Last updated: ${lockFile.lastUpdated}`);
       logger.log(`  Resources: ${Object.keys(lockFile.resources).length}`);
     } catch (error) {
-      spinner.fail(`Failed to load lock file: ${error}`);
+      spinner.fail(`Failed to load lock file: ${error instanceof Error ? error.message : error}`);
     }
   } else {
     spinner.warn('No lock file found in current project');

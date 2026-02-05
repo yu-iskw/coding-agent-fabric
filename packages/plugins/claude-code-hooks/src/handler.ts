@@ -117,7 +117,10 @@ export class ClaudeCodeHooksHandler extends BaseResourceHandler {
           try {
             await fs.access(targetPath);
             throw new Error(`Hook already exists: ${targetPath}. Use --force to overwrite.`);
-          } catch {
+          } catch (error) {
+            if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+              throw error;
+            }
             // File doesn't exist, ok to continue
           }
         }

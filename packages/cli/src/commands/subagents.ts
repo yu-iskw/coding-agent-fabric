@@ -36,7 +36,7 @@ export function createSubagentsCommand(): Command {
       try {
         await addSubagents(source, options);
       } catch (error) {
-        logger.error(`Failed to add subagents: ${error}`);
+        logger.error(`Failed to add subagents: ${error instanceof Error ? error.message : error}`);
         process.exit(1);
       }
     });
@@ -52,7 +52,7 @@ export function createSubagentsCommand(): Command {
       try {
         await listSubagents(options);
       } catch (error) {
-        logger.error(`Failed to list subagents: ${error}`);
+        logger.error(`Failed to list subagents: ${error instanceof Error ? error.message : error}`);
         process.exit(1);
       }
     });
@@ -69,7 +69,9 @@ export function createSubagentsCommand(): Command {
       try {
         await removeSubagent(name, options);
       } catch (error) {
-        logger.error(`Failed to remove subagent: ${error}`);
+        logger.error(
+          `Failed to remove subagent: ${error instanceof Error ? error.message : error}`,
+        );
         process.exit(1);
       }
     });
@@ -83,7 +85,9 @@ export function createSubagentsCommand(): Command {
       try {
         await updateSubagents(options);
       } catch (error) {
-        logger.error(`Failed to update subagents: ${error}`);
+        logger.error(
+          `Failed to update subagents: ${error instanceof Error ? error.message : error}`,
+        );
         process.exit(1);
       }
     });

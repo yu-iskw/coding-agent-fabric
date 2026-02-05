@@ -2,7 +2,7 @@
  * SourceParser - Handles downloading and parsing resources from different sources
  */
 
-import { readdir, readFile, stat, mkdir, rm } from 'node:fs/promises';
+import { readdir, readFile, stat, mkdir, rm, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join, resolve, basename, dirname, sep } from 'node:path';
 import { tmpdir } from 'node:os';
@@ -372,16 +372,19 @@ export class SourceParser {
     subpath?: string,
     options?: { headers?: Record<string, string> },
   ): Promise<ResourceFile[]> {
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': USER_AGENT,
-        ...options?.headers,
-      },
-    });
+    const response = await retry(async () => {
+      const res = await fetch(url, {
+        headers: {
+          'User-Agent': USER_AGENT,
+          ...options?.headers,
+        },
+      });
 
-    if (!response.ok) {
-      throw new Error(`Failed to download tarball from ${url}: ${response.statusText}`);
-    }
+      if (!res.ok) {
+        throw new Error(`Failed to download tarball from ${url}: ${res.statusText}`);
+      }
+      return res;
+    }, RETRY_CONFIG);
 
     const arrayBuffer = await response.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
@@ -398,6 +401,13 @@ export class SourceParser {
           .pipe(
             tar.x({
               cwd: tempExtractDir,
+              filter: (path) => {
+                // Prevent path traversal by ensuring no ".." parts
+                const isTraversal = path.split(/[\\/]/).some((part) => part === '..');
+                // Also prevent absolute paths (though tar.x usually handles this)
+                const isAbsolute = path.startsWith('/') || /^[A-Z]:\\/i.test(path);
+                return !isTraversal && !isAbsolute;
+              },
             }),
           )
           .on('finish', resolve)
@@ -427,8 +437,9 @@ export class SourceParser {
       for (const file of files) {
         const targetPath = join(targetDir, file.path);
         await this.ensureDir(dirname(targetPath));
-        // Note: listFiles already reads the content, so we can just use that
-        // In a more efficient implementation, we might want to pipe the stream directly
+        if (file.content !== undefined) {
+          await writeFile(targetPath, file.content, { mode: file.mode });
+        }
       }
 
       return files;
@@ -501,6 +512,8 @@ export class SourceParser {
     let totalSize = 0;
 
     try {
+      if (!existsSync(dir)) return 0;
+
       const entries = await readdir(dir, { withFileTypes: true });
 
       for (const entry of entries) {
@@ -509,12 +522,18 @@ export class SourceParser {
         if (entry.isDirectory()) {
           totalSize += await this.getDirectorySize(fullPath);
         } else if (entry.isFile()) {
-          const stats = await stat(fullPath);
-          totalSize += stats.size;
+          try {
+            const stats = await stat(fullPath);
+            totalSize += stats.size;
+          } catch (error) {
+            // Log error but continue
+            console.warn(`Failed to get size of ${fullPath}: ${error}`);
+          }
         }
       }
-    } catch (_error) {
-      // Ignore errors
+    } catch (error) {
+      // Log error but return what we have so far
+      console.warn(`Failed to get directory size for ${dir}: ${error}`);
     }
 
     return totalSize;
