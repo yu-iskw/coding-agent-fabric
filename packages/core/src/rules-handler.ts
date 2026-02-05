@@ -117,6 +117,7 @@ export class RulesHandler implements ResourceHandler {
           namingStrategy,
           globs: metadata.globs,
           sourcePath: relative(localPath, rulePath),
+          sourceDir: ruleDir,
           configHash: this.generateConfigHash(metadata, ruleContent),
         },
         files: [
@@ -159,30 +160,36 @@ export class RulesHandler implements ResourceHandler {
       const targetFileName = `${sanitizeFileName(resource.name)}${extension}`;
       const targetPath = join(installPath, targetFileName);
 
-      // Check if already exists
-      if (existsSync(targetPath) && !options.force) {
-        throw new Error(`Rule ${resource.name} already exists at ${targetPath}`);
-      }
-
       // Install file
       if (target.mode === 'symlink') {
-        // We can only symlink if the source is on disk
-        // Since rules are usually single files, we symlink the file itself
-        // Note: symlinking single files might be tricky if the agent expects specific extensions.
-        // For rules, it's better to copy or handle the extension in the symlink name.
-
-        // Find the absolute source path if available in metadata
-        const sourcePath = resource.metadata?.sourceDir
-          ? join(resource.metadata.sourceDir as string, resource.files[0].path)
-          : undefined;
-
-        if (sourcePath && existsSync(sourcePath)) {
-          await symlink(sourcePath, targetPath);
-        } else {
-          // Fallback to copy if no absolute path is available
-          await writeFile(targetPath, resource.files[0].content || '', 'utf-8');
+        const sourceDir = resource.metadata?.sourceDir;
+        if (typeof sourceDir !== 'string' || sourceDir.length === 0) {
+          throw new Error(
+            `Rule ${resource.name} cannot be symlinked because metadata.sourceDir is missing`,
+          );
         }
+
+        const sourcePath = join(sourceDir, resource.files[0].path);
+        if (!existsSync(sourcePath)) {
+          throw new Error(
+            `Rule ${resource.name} cannot be symlinked because source file does not exist: ${sourcePath}`,
+          );
+        }
+
+        if (existsSync(targetPath)) {
+          if (!options.force) {
+            throw new Error(`Rule ${resource.name} already exists at ${targetPath}`);
+          }
+          await rm(targetPath, { force: true });
+        }
+
+        await symlink(sourcePath, targetPath);
       } else {
+        // Check if already exists
+        if (existsSync(targetPath) && !options.force) {
+          throw new Error(`Rule ${resource.name} already exists at ${targetPath}`);
+        }
+
         // Copy content
         await writeFile(targetPath, resource.files[0].content || '', 'utf-8');
       }

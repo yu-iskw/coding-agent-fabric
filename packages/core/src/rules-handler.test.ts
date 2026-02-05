@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mkdir, writeFile, rm, readFile } from 'node:fs/promises';
+import { mkdir, writeFile, rm, readFile, lstat, readlink } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { RulesHandler } from './rules-handler.js';
@@ -69,6 +69,7 @@ This is a test rule.
       expect(resources[0].name).toBe('test-rule');
       expect(resources[0].description).toBe('A test rule');
       expect(resources[0].metadata.globs).toEqual(['src/**/*.ts']);
+      expect(resources[0].metadata.sourceDir).toBe(rulesDir);
     });
 
     it('should discover .mdc files', async () => {
@@ -189,6 +190,86 @@ globs: "src/**/*.ts"
       const installPath = handler.getInstallPath('claude-code', 'project');
       const targetPath = join(installPath, 'test-rule.md');
       expect(await readFile(targetPath, 'utf-8')).toBe('# Content');
+    });
+
+    it('should create symlink in symlink mode', async () => {
+      const rulesDir = join(testDir, 'symlink-rules');
+      await mkdir(rulesDir, { recursive: true });
+
+      const sourcePath = join(rulesDir, 'symlink-rule.md');
+      await writeFile(
+        sourcePath,
+        `---
+name: symlink-rule
+---
+
+# Symlink Rule
+`,
+      );
+
+      const resources = await handler.discoverFromPath(rulesDir);
+      expect(resources).toHaveLength(1);
+
+      await handler.install(
+        resources[0],
+        [{ agent: 'claude-code', scope: 'project', mode: 'symlink' }],
+        { force: true },
+      );
+
+      const installPath = handler.getInstallPath('claude-code', 'project');
+      const targetPath = join(installPath, 'symlink-rule.md');
+      const stats = await lstat(targetPath);
+      expect(stats.isSymbolicLink()).toBe(true);
+      expect(await readlink(targetPath)).toBe(sourcePath);
+    });
+
+    it('should fail symlink install without metadata.sourceDir', async () => {
+      const resource: Resource = {
+        type: 'rules',
+        name: 'test-rule',
+        description: 'desc',
+        metadata: {},
+        files: [{ path: 'test-rule.md', content: '# Content' }],
+      };
+
+      await expect(
+        handler.install(resource, [{ agent: 'claude-code', scope: 'project', mode: 'symlink' }], {
+          force: true,
+        }),
+      ).rejects.toThrow('metadata.sourceDir is missing');
+    });
+
+    it('should replace existing target with symlink when force is true', async () => {
+      const rulesDir = join(testDir, 'force-symlink-rules');
+      await mkdir(rulesDir, { recursive: true });
+
+      const sourcePath = join(rulesDir, 'force-rule.md');
+      await writeFile(sourcePath, '# Force Rule');
+
+      const resource: Resource = {
+        type: 'rules',
+        name: 'force-rule',
+        description: 'desc',
+        metadata: {
+          sourceDir: rulesDir,
+        },
+        files: [{ path: 'force-rule.md', content: '# Force Rule' }],
+      };
+
+      const installPath = handler.getInstallPath('claude-code', 'project');
+      await mkdir(installPath, { recursive: true });
+      const targetPath = join(installPath, 'force-rule.md');
+      await writeFile(targetPath, '# Existing');
+
+      await handler.install(
+        resource,
+        [{ agent: 'claude-code', scope: 'project', mode: 'symlink' }],
+        { force: true },
+      );
+
+      const stats = await lstat(targetPath);
+      expect(stats.isSymbolicLink()).toBe(true);
+      expect(await readlink(targetPath)).toBe(sourcePath);
     });
   });
 

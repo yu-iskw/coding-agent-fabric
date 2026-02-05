@@ -273,6 +273,10 @@ async function removeRule(name: string, options: RemoveOptions): Promise<void> {
   const rule = rules.find((r) => r.name === name);
 
   if (!rule) {
+    if (options.force) {
+      logger.warn(`Rule '${name}' not found (skipping due to --force)`);
+      return;
+    }
     logger.error(`Rule '${name}' not found`);
     process.exit(1);
   }
@@ -290,6 +294,7 @@ async function removeRule(name: string, options: RemoveOptions): Promise<void> {
   const scope: 'global' | 'project' | 'both' = options.global ? 'global' : options.scope || 'both';
   const targets = rule.installedFor
     .filter((install) => scope === 'both' || install.scope === scope)
+    .filter((install) => !options.agent || install.agent === options.agent)
     .map((install) => ({
       agent: install.agent as AgentType,
       scope: install.scope as Scope,
