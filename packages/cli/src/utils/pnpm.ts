@@ -1,7 +1,8 @@
 import { exec } from 'node:child_process';
 import { promisify } from 'node:util';
-import { join } from 'node:path';
+import { join, dirname } from 'node:path';
 import { existsSync, readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { spinner } from './spinner.js';
 
 const execPromise = promisify(exec);
@@ -39,13 +40,18 @@ export async function pnpmAdd(source: string, projectRoot: string): Promise<stri
 /**
  * Infer package name from source or package.json
  */
-function inferPackageName(
+export function inferPackageName(
   source: string,
   pkgJson: { devDependencies?: Record<string, string>; dependencies?: Record<string, string> },
 ): string | null {
-  // If source is already a package name (e.g. "@scope/pkg" or "pkg")
-  if (!source.includes('/') || (source.startsWith('@') && source.split('/').length === 2)) {
-    return source.split('@')[0] || source; // Handle version tags
+  const directSource = source.startsWith('npm:') ? source.slice(4) : source;
+  const looksLikePackageSpecifier =
+    !directSource.includes('/') ||
+    (directSource.startsWith('@') && directSource.split('/').length === 2);
+
+  // If source is already a package specifier (e.g. "@scope/pkg@1.2.3" or "pkg@latest")
+  if (looksLikePackageSpecifier) {
+    return normalizePackageSpecifier(source);
   }
 
   // If source is a URL or GitHub shorthand, look in devDependencies
@@ -61,8 +67,24 @@ function inferPackageName(
   return null;
 }
 
-import { createRequire } from 'node:module';
-import { dirname } from 'node:path';
+/**
+ * Normalize package specifiers to package names.
+ */
+export function normalizePackageSpecifier(specifier: string): string {
+  const source = specifier.startsWith('npm:') ? specifier.slice(4) : specifier;
+
+  if (source.startsWith('@')) {
+    const scopeSeparator = source.indexOf('/');
+    if (scopeSeparator === -1) {
+      return source;
+    }
+    const versionSeparator = source.indexOf('@', scopeSeparator + 1);
+    return versionSeparator === -1 ? source : source.slice(0, versionSeparator);
+  }
+
+  const versionSeparator = source.indexOf('@');
+  return versionSeparator === -1 ? source : source.slice(0, versionSeparator);
+}
 
 /**
  * Resolve the local path of an installed package

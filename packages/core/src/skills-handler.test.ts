@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mkdir, writeFile, rm } from 'node:fs/promises';
+import { mkdir, writeFile, rm, readFile, lstat, readlink } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { SkillsHandler } from './skills-handler.js';
@@ -138,6 +138,20 @@ Content here.
       expect(resources[0].version).toBe('2.1.0');
       expect(resources[0].description).toBe('Custom description');
     });
+
+    it('should include nested files with relative paths', async () => {
+      const skillsDir = join(testDir, 'skills');
+      const skillPath = join(skillsDir, 'nested-skill');
+      await mkdir(join(skillPath, 'references'), { recursive: true });
+      await writeFile(join(skillPath, 'SKILL.md'), '# Nested Skill');
+      await writeFile(join(skillPath, 'references', 'guide.md'), 'reference content');
+
+      const resources = await handler.discoverFromPath(skillsDir);
+
+      expect(resources).toHaveLength(1);
+      expect(resources[0].files.map((f) => f.path)).toContain('SKILL.md');
+      expect(resources[0].files.map((f) => f.path)).toContain(join('references', 'guide.md'));
+    });
   });
 
   describe('validate', () => {
@@ -244,6 +258,102 @@ Content here.
       expect(() => {
         handler.getInstallPath('unknown-agent' as string, 'project');
       }).toThrow('Agent unknown-agent not found');
+    });
+  });
+
+  describe('install', () => {
+    it('should preserve nested directories in copy mode', async () => {
+      const resource: Resource = {
+        type: 'skills',
+        name: 'nested-skill',
+        description: 'A nested skill',
+        metadata: {},
+        files: [
+          {
+            path: 'SKILL.md',
+            content: '# Nested Skill',
+          },
+          {
+            path: join('references', 'a.md'),
+            content: 'A',
+          },
+          {
+            path: join('docs', 'a.md'),
+            content: 'B',
+          },
+        ],
+      };
+
+      await handler.install(
+        resource,
+        [{ agent: 'claude-code' as const, scope: 'project' as const, mode: 'copy' as const }],
+        { force: true },
+      );
+
+      const installPath = handler.getInstallPath('claude-code', 'project');
+      const skillDir = join(installPath, 'nested-skill');
+      expect(await readFile(join(skillDir, 'references', 'a.md'), 'utf-8')).toBe('A');
+      expect(await readFile(join(skillDir, 'docs', 'a.md'), 'utf-8')).toBe('B');
+    });
+
+    it('should create a symlink from metadata.sourceDir', async () => {
+      const sourceDir = join(testDir, 'symlink-source');
+      await mkdir(sourceDir, { recursive: true });
+      await writeFile(join(sourceDir, 'SKILL.md'), '# Symlink Skill');
+
+      const resource: Resource = {
+        type: 'skills',
+        name: 'symlink-skill',
+        description: 'A symlinked skill',
+        metadata: { sourceDir },
+        files: [
+          {
+            path: 'SKILL.md',
+            content: '# Symlink Skill',
+          },
+        ],
+      };
+
+      await handler.install(
+        resource,
+        [{ agent: 'claude-code' as const, scope: 'project' as const, mode: 'symlink' as const }],
+        { force: true },
+      );
+
+      const installPath = handler.getInstallPath('claude-code', 'project');
+      const targetPath = join(installPath, 'symlink-skill');
+      const targetStat = await lstat(targetPath);
+      expect(targetStat.isSymbolicLink()).toBe(true);
+      expect(await readlink(targetPath)).toBe(sourceDir);
+    });
+
+    it('should fail symlink install when metadata.sourceDir is missing', async () => {
+      const resource: Resource = {
+        type: 'skills',
+        name: 'missing-source-dir',
+        description: 'A skill without sourceDir',
+        metadata: {},
+        files: [
+          {
+            path: 'SKILL.md',
+            content: '# Missing Source',
+          },
+        ],
+      };
+
+      await expect(
+        handler.install(
+          resource,
+          [
+            {
+              agent: 'claude-code' as const,
+              scope: 'project' as const,
+              mode: 'symlink' as const,
+            },
+          ],
+          { force: true },
+        ),
+      ).rejects.toThrow('metadata.sourceDir');
     });
   });
 });

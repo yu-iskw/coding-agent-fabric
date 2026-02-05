@@ -132,8 +132,10 @@ export class CursorHooksHandler extends BaseResourceHandler {
           try {
             await fs.access(targetPath);
             throw new Error(`Hook already exists: ${targetPath}. Use --force to overwrite.`);
-          } catch {
-            // File doesn't exist, ok to continue
+          } catch (error) {
+            if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+              throw error;
+            }
           }
         }
 

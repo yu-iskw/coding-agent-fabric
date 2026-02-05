@@ -4,7 +4,7 @@
 
 import { readFile, writeFile, mkdir, readdir, stat, unlink, rm } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
-import { join, basename, dirname, extname } from 'node:path';
+import { join, basename, dirname, extname, relative } from 'node:path';
 import type {
   AgentType,
   Resource,
@@ -186,7 +186,8 @@ export class SubagentsHandler implements ResourceHandler {
           await writeFile(mainConfigTargetPath, configContent, 'utf-8');
         } else if (file.content !== undefined) {
           // Copy other files as-is into the subdirectory
-          const targetFilePath = safeJoin(subagentInstallDir, fileName);
+          const targetFilePath = safeJoin(subagentInstallDir, file.path);
+          await mkdir(dirname(targetFilePath), { recursive: true });
           await writeFile(targetFilePath, file.content, { mode: file.mode });
         }
       }
@@ -543,7 +544,7 @@ export class SubagentsHandler implements ResourceHandler {
   /**
    * Collect all files in a subagent directory
    */
-  private async collectSubagentFiles(dir: string): Promise<ResourceFile[]> {
+  private async collectSubagentFiles(dir: string, baseDir: string = dir): Promise<ResourceFile[]> {
     const files: ResourceFile[] = [];
 
     if (!existsSync(dir)) {
@@ -560,12 +561,15 @@ export class SubagentsHandler implements ResourceHandler {
         continue;
       }
 
-      if (entry.isFile()) {
+      if (entry.isDirectory()) {
+        const subFiles = await this.collectSubagentFiles(fullPath, baseDir);
+        files.push(...subFiles);
+      } else if (entry.isFile()) {
         const content = await readFile(fullPath, 'utf-8');
         const stats = await stat(fullPath);
 
         files.push({
-          path: fullPath,
+          path: relative(baseDir, fullPath),
           content,
           mode: stats.mode,
         });

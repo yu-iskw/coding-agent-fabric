@@ -25,6 +25,7 @@ import {
   EXCLUDE_PATTERNS,
   generateSmartName,
   sanitizeFileName,
+  safeJoin,
 } from '@coding-agent-fabric/common';
 import { ResourceHandler } from '@coding-agent-fabric/plugin-api';
 import { AgentRegistry } from './agent-registry.js';
@@ -110,6 +111,7 @@ export class SkillsHandler implements ResourceHandler {
           categories,
           namingStrategy,
           sourcePath: relative(localPath, skillDir),
+          sourceDir: skillDir,
         },
         files,
       });
@@ -155,17 +157,21 @@ export class SkillsHandler implements ResourceHandler {
 
       // Install files
       if (target.mode === 'symlink') {
-        // Symlink the skill directory
-        if (resource.files.length > 0 && resource.files[0].path) {
-          const sourcePath = dirname(resource.files[0].path);
-          await symlink(sourcePath, targetPath, 'dir');
+        // Symlink the original discovered skill directory.
+        const sourceDir = resource.metadata?.sourceDir;
+        if (typeof sourceDir !== 'string' || sourceDir.length === 0) {
+          throw new Error(
+            `Skill ${resource.name} cannot be symlinked because metadata.sourceDir is missing`,
+          );
         }
+        await symlink(sourceDir, targetPath, 'dir');
       } else {
         // Copy files
         await mkdir(targetPath, { recursive: true });
         for (const file of resource.files) {
           if (file.path && file.content !== undefined) {
-            const destPath = join(targetPath, basename(file.path));
+            const destPath = safeJoin(targetPath, file.path);
+            await mkdir(dirname(destPath), { recursive: true });
             await writeFile(destPath, file.content, {
               mode: file.mode,
             });
@@ -433,7 +439,7 @@ export class SkillsHandler implements ResourceHandler {
   /**
    * Collect all files in a skill directory
    */
-  private async collectSkillFiles(dir: string): Promise<ResourceFile[]> {
+  private async collectSkillFiles(dir: string, baseDir: string = dir): Promise<ResourceFile[]> {
     const files: ResourceFile[] = [];
 
     if (!existsSync(dir)) {
@@ -450,12 +456,15 @@ export class SkillsHandler implements ResourceHandler {
         continue;
       }
 
-      if (entry.isFile()) {
+      if (entry.isDirectory()) {
+        const subFiles = await this.collectSkillFiles(fullPath, baseDir);
+        files.push(...subFiles);
+      } else if (entry.isFile()) {
         const content = await readFile(fullPath, 'utf-8');
         const stats = await stat(fullPath);
 
         files.push({
-          path: fullPath,
+          path: relative(baseDir, fullPath),
           content,
           mode: stats.mode,
         });

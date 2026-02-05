@@ -116,6 +116,24 @@ instructions: YAML instructions
       expect(resources[0].name).toBe('yaml-agent');
       expect(resources[0].metadata.format).toBe('claude-code-yaml');
     });
+
+    it('should include nested support files with relative paths', async () => {
+      const subagentsDir = join(testDir, 'nested-subagents');
+      const subagentPath = join(subagentsDir, 'nested-agent');
+      await mkdir(join(subagentPath, 'tools'), { recursive: true });
+
+      await writeFile(
+        join(subagentPath, 'subagent.json'),
+        JSON.stringify({ name: 'nested-agent', description: 'Nested test' }),
+      );
+      await writeFile(join(subagentPath, 'tools', 'custom-tool.js'), 'module.exports = {}');
+
+      const resources = await handler.discoverFromPath(subagentsDir);
+
+      expect(resources).toHaveLength(1);
+      expect(resources[0].files.map((f) => f.path)).toContain('subagent.json');
+      expect(resources[0].files.map((f) => f.path)).toContain(join('tools', 'custom-tool.js'));
+    });
   });
 
   describe('validate', () => {
@@ -283,7 +301,7 @@ instructions: YAML instructions
 
       // Check support files exist in subdirectory
       expect(existsSync(join(subagentDir, 'instructions.md'))).toBe(true);
-      expect(existsSync(join(subagentDir, 'custom-tool.js'))).toBe(true);
+      expect(existsSync(join(subagentDir, 'tools', 'custom-tool.js'))).toBe(true);
     });
   });
 });
