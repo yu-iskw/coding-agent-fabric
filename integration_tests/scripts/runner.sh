@@ -117,8 +117,15 @@ caf skills add /tmp/repos/coding-agent-skills --yes --force || { echo -e "${RED}
 echo "Verifying coding-agent-skills installation..."
 caf skills list | grep "claude-code-cli" || { echo -e "${RED}coding-agent-skills verification failed${NC}"; exit 1; }
 
-# 11. Remove a skill
-echo "Scenario 11: Removing a skill..."
+# 11. Install real skills from microsoft/skills via GitHub URL (nested directories under .github/skills)
+echo "Scenario 11: Installing real skills from microsoft/skills via GitHub URL..."
+caf skills add https://github.com/microsoft/skills --yes --force || { echo -e "${RED}Failed to add microsoft/skills via URL${NC}"; exit 1; }
+
+echo "Verifying microsoft-skills installation..."
+caf skills list | grep "github-skills-azure-cosmos-db-py" || { echo -e "${RED}microsoft-skills verification failed${NC}"; exit 1; }
+
+# 12. Remove a skill
+echo "Scenario 12: Removing a skill..."
 # Create a dedicated mock skill for removal to avoid issues with duplicates from other scenarios
 mkdir -p /tmp/removal-skill
 cat > /tmp/removal-skill/package.json <<EOF
@@ -141,8 +148,8 @@ if caf skills list | grep -q "removal-skill"; then
     exit 1
 fi
 
-# 12. Remove a subagent
-echo "Scenario 12: Removing a subagent..."
+# 13. Remove a subagent
+echo "Scenario 13: Removing a subagent..."
 # Create a dedicated mock subagent for removal
 mkdir -p /tmp/removal-subagent
 cat > /tmp/removal-subagent/package.json <<EOF
@@ -168,8 +175,8 @@ if caf subagents list | grep -q "removal-subagent"; then
     exit 1
 fi
 
-# 13. Update/Sync Skill (Local mock)
-echo "Scenario 13: Updating/Syncing a skill..."
+# 14. Update/Sync Skill (Local mock)
+echo "Scenario 14: Updating/Syncing a skill..."
 mkdir -p /tmp/mock-skill
 cat > /tmp/mock-skill/package.json <<EOF
 {
@@ -194,8 +201,8 @@ EOF
 caf skills add /tmp/mock-skill --yes --force || { echo -e "${RED}Failed to update mock skill${NC}"; exit 1; }
 caf skills list | grep "mock-skill" || { echo -e "${RED}Mock skill update verification failed${NC}"; exit 1; }
 
-# 14. Update/Sync Subagent (Local mock)
-echo "Scenario 14: Updating/Syncing a subagent..."
+# 15. Update/Sync Subagent (Local mock)
+echo "Scenario 15: Updating/Syncing a subagent..."
 mkdir -p /tmp/mock-subagent
 cat > /tmp/mock-subagent/package.json <<EOF
 {
@@ -223,18 +230,18 @@ EOF
 caf subagents add /tmp/mock-subagent --yes --force || { echo -e "${RED}Failed to update mock subagent${NC}"; exit 1; }
 caf subagents list | grep "mock-subagent" || { echo -e "${RED}Mock subagent update verification failed${NC}"; exit 1; }
 
-# 15. Install via GitHub Shorthand
-echo "Scenario 15: Installing via GitHub Shorthand (anthropics/skills)..."
+# 16. Install via GitHub Shorthand
+echo "Scenario 16: Installing via GitHub Shorthand (anthropics/skills)..."
 caf skills add anthropics/skills --yes --force || { echo -e "${RED}Installation from shorthand failed${NC}"; exit 1; }
 caf skills list | grep "document-skills" || caf skills list | grep -i "pdf" || { echo -e "${RED}Shorthand installation verification failed${NC}"; exit 1; }
 
-# 16. Install via GitHub URL
-echo "Scenario 16: Installing via GitHub URL (vercel-labs/agent-skills)..."
+# 17. Install via GitHub URL
+echo "Scenario 17: Installing via GitHub URL (vercel-labs/agent-skills)..."
 caf skills add https://github.com/vercel-labs/agent-skills --yes --force || { echo -e "${RED}Installation from URL failed${NC}"; exit 1; }
 caf skills list | grep "web-design-guidelines" || { echo -e "${RED}URL installation verification failed${NC}"; exit 1; }
 
-# 17. Verify that package.json was NOT modified by git-based adds
-echo "Scenario 17: Verifying package.json was not modified for git-based adds..."
+# 18. Verify that package.json was NOT modified by git-based adds
+echo "Scenario 18: Verifying package.json was not modified for git-based adds..."
 # Since these are git clones to temp dirs and then installed via handler, 
 # they shouldn't trigger pnpmAdd which modifies package.json
 if grep -q "anthropics/skills" /test-workspace/package.json || grep -q "vercel-labs/agent-skills" /test-workspace/package.json; then

@@ -25,6 +25,7 @@ import {
   RULE_FILE_EXTENSIONS,
   generateSmartName,
   sanitizeFileName,
+  isExcludedName,
 } from '@coding-agent-fabric/common';
 import { ResourceHandler } from '@coding-agent-fabric/plugin-api';
 import { AgentRegistry } from './agent-registry.js';
@@ -394,7 +395,7 @@ export class RulesHandler implements ResourceHandler {
     for (const entry of entries) {
       const fullPath = join(dir, entry.name);
 
-      if (EXCLUDE_PATTERNS.some((pattern) => entry.name.includes(pattern))) {
+      if (isExcludedName(entry.name, EXCLUDE_PATTERNS)) {
         continue;
       }
 

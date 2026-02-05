@@ -7,8 +7,10 @@ import {
   extractCategories,
   generateSmartName,
   safeJoin,
+  isExcludedName,
   LOCK_FILE_VERSION,
   CORE_RESOURCE_TYPES,
+  EXCLUDE_PATTERNS,
 } from './index.js';
 
 describe('@coding-agent-fabric/common', () => {
@@ -103,6 +105,46 @@ describe('@coding-agent-fabric/common', () => {
 
     it('should have correct core resource types', () => {
       expect(CORE_RESOURCE_TYPES).toEqual(['skills', 'subagents', 'rules']);
+    });
+  });
+
+  describe('isExcludedName', () => {
+    it('should match exact patterns', () => {
+      expect(isExcludedName('node_modules', EXCLUDE_PATTERNS)).toBe(true);
+      expect(isExcludedName('.git', EXCLUDE_PATTERNS)).toBe(true);
+      expect(isExcludedName('dist', EXCLUDE_PATTERNS)).toBe(true);
+      expect(isExcludedName('build', EXCLUDE_PATTERNS)).toBe(true);
+      expect(isExcludedName('.DS_Store', EXCLUDE_PATTERNS)).toBe(true);
+      expect(isExcludedName('.env', EXCLUDE_PATTERNS)).toBe(true);
+    });
+
+    it('should NOT match substrings for exact patterns', () => {
+      // .github should NOT be excluded by .git pattern (regression test)
+      expect(isExcludedName('.github', EXCLUDE_PATTERNS)).toBe(false);
+      // something-dist should NOT be excluded by dist pattern
+      expect(isExcludedName('something-dist', EXCLUDE_PATTERNS)).toBe(false);
+      // node_modules_backup should NOT be excluded
+      expect(isExcludedName('node_modules_backup', EXCLUDE_PATTERNS)).toBe(false);
+    });
+
+    it('should match wildcard prefix patterns (*.ext)', () => {
+      expect(isExcludedName('error.log', EXCLUDE_PATTERNS)).toBe(true);
+      expect(isExcludedName('debug.log', EXCLUDE_PATTERNS)).toBe(true);
+      expect(isExcludedName('app.log', EXCLUDE_PATTERNS)).toBe(true);
+    });
+
+    it('should match wildcard suffix patterns (prefix.*)', () => {
+      expect(isExcludedName('.env.local', EXCLUDE_PATTERNS)).toBe(true);
+      expect(isExcludedName('.env.production', EXCLUDE_PATTERNS)).toBe(true);
+      expect(isExcludedName('.env.development', EXCLUDE_PATTERNS)).toBe(true);
+    });
+
+    it('should NOT match unrelated names', () => {
+      expect(isExcludedName('src', EXCLUDE_PATTERNS)).toBe(false);
+      expect(isExcludedName('package.json', EXCLUDE_PATTERNS)).toBe(false);
+      expect(isExcludedName('SKILL.md', EXCLUDE_PATTERNS)).toBe(false);
+      expect(isExcludedName('.claude', EXCLUDE_PATTERNS)).toBe(false);
+      expect(isExcludedName('skills', EXCLUDE_PATTERNS)).toBe(false);
     });
   });
 });
