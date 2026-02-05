@@ -1,0 +1,44 @@
+---
+alwaysApply: true
+---
+# Tech Stack
+
+This project uses:
+
+- **Package Manager:** [pnpm](https://pnpm.io/)
+- **Node.js Version:** (read from [.node-version](mdc:.node-version))
+
+## pnpm Workspace & Monorepo Best Practices
+
+This repository is structured as a pnpm workspace (see [pnpm-workspace.yaml](mdc:pnpm-workspace.yaml)).
+
+### Common Commands
+
+- **Install All Dependencies:** `pnpm install`
+- **Add Dependency:**
+  - To current package: `pnpm add <pkg>`
+  - As dev dependency: `pnpm add -D <pkg>`
+  - To workspace root: `pnpm add -w <pkg>`
+- **Run Scripts:**
+  - In current package: `pnpm <script>` (e.g., `pnpm test`)
+  - In all packages: `pnpm -r <script>`
+  - In specific package: `pnpm --filter <pkg-name> <script>`
+
+### Workspace Protocol
+
+Always use the `workspace:` protocol when referencing local packages in `package.json`:
+
+```json
+{
+  "dependencies": {
+    "@my-project/common": "workspace:*"
+  }
+}
+```
+
+### Dependency Management
+
+pnpm uses a content-addressable store and a non-flat `node_modules` structure. This ensures:
+
+- **Strictness:** You cannot access dependencies that are not explicitly declared in your `package.json`.
+- **Efficiency:** Disk space is saved by sharing package files across projects.

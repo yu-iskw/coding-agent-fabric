@@ -1,0 +1,49 @@
+# Changie configuration
+changesDir: .changes
+unreleasedDir: unreleased
+configDir: .changes/config
+headerPath: .changes/header.md
+changelogPath: CHANGELOG.md
+versionPrefix: v
+
+kinds:
+  - label: Features
+    key: feat
+    format: '### {{.Label}}'
+    changeFormat: '* {{.Body}}'
+    auto: minor
+  - label: Bug Fixes
+    key: fix
+    format: '### {{.Label}}'
+    changeFormat: '* {{.Body}}'
+    auto: patch
+  - label: Documentation
+    key: docs
+    format: '### {{.Label}}'
+    changeFormat: '* {{.Body}}'
+    auto: patch
+  - label: Refactors
+    key: refactor
+    format: '### {{.Label}}'
+    changeFormat: '* {{.Body}}'
+    auto: patch
+  - label: Performance
+    key: perf
+    format: '### {{.Label}}'
+    changeFormat: '* {{.Body}}'
+    auto: patch
+  - label: Tests
+    key: test
+    format: '### {{.Label}}'
+    changeFormat: '* {{.Body}}'
+    auto: none
+  - label: Chores
+    key: chore
+    format: '### {{.Label}}'
+    changeFormat: '* {{.Body}}'
+    auto: none
+
+components: []
+
+# Format for each version in the changelog
+versionFormat: '## [{{.Version}}] - {{.Time.Format "2006-01-02"}}'

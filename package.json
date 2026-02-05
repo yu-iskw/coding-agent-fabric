@@ -1,0 +1,41 @@
+{
+  "name": "typescript-template",
+  "version": "1.0.0",
+  "private": true,
+  "description": "",
+  "keywords": [],
+  "license": "Apache-2.0",
+  "author": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "pnpm --recursive build",
+    "format": "pnpm format:trunk",
+    "format:all": "pnpm format:trunk-all",
+    "format:eslint": "eslint . --fix",
+    "format:prettier": "prettier --write .",
+    "format:trunk": "trunk fmt",
+    "format:trunk-all": "trunk fmt --all",
+    "lint": "pnpm lint:trunk",
+    "lint:all": "pnpm lint:trunk-all",
+    "lint:eslint": "eslint .",
+    "lint:security": "trunk check --all --scope security",
+    "lint:trunk": "trunk check",
+    "lint:trunk-all": "trunk check --all",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.2",
+    "eslint": "^9.39.2",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.5",
+    "prettier": "^3.8.1",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.54.0",
+    "vitest": "^4.0.18"
+  },
+  "packageManager": "pnpm@10.28.1",
+  "engines": {
+    "node": ">=24.13.0",
+    "pnpm": ">=10.28.1"
+  }
+}
