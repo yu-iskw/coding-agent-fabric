@@ -72,4 +72,4 @@ jobs:
           egress-policy: audit
 
       - name: Run Integration Tests
-        run: make -C integration_tests test
+        run: make -C integration_tests test-verbose

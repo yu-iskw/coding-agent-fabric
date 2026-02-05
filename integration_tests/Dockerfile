@@ -1,7 +1,7 @@
 FROM node:24-slim
 
 # Install system dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends git make ca-certificates && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends git make ca-certificates tree && rm -rf /var/lib/apt/lists/*
 
 # Install pnpm
 RUN npm install -g pnpm@10.28.1
@@ -28,9 +28,9 @@ RUN pnpm link --global
 
 # Prepare a clean workspace for integration tests
 WORKDIR /test-workspace
-ENV HOME=/test-workspace
+ENV HOME=/home/node
 
-# Make runner executable
+# Make runner and scenarios executable
 RUN chmod +x /app/integration_tests/scripts/runner.sh
 
 # Use non-root user
@@ -43,4 +43,4 @@ RUN caf --version
 # Satisfy trivy/DS026
 HEALTHCHECK NONE
 
-CMD ["/app/integration_tests/scripts/runner.sh"]
+ENTRYPOINT ["/app/integration_tests/scripts/runner.sh"]
