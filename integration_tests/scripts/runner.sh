@@ -45,11 +45,15 @@ show_structure() {
 
   if [ "$VERBOSE" = true ]; then
     echo -e "${YELLOW}=== $label ===${NC}"
+    if [ ! -d "$dir" ]; then
+      debug_log "Directory does not exist: $dir"
+      return 0
+    fi
     if command -v tree &> /dev/null; then
       tree -L 3 -a "$dir" 2>/dev/null || ls -la "$dir"
     else
       debug_log "tree command not available, using ls instead"
-      ls -laR "$dir" | head -50
+      ls -laR "$dir" 2>/dev/null | head -50 || echo "Failed to list directory"
     fi
     echo ""
   fi
