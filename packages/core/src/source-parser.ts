@@ -26,6 +26,7 @@ import {
   RETRY_CONFIG,
   EXCLUDE_PATTERNS,
 } from '@coding-agent-fabric/common';
+import { auditLogger, AuditLogger } from './audit-logger.js';
 
 export interface DownloadOptions {
   /** Target directory for downloaded files */
@@ -58,9 +59,11 @@ export interface SourceParseResult {
  */
 export class SourceParser {
   private cacheDir: string;
+  private auditLogger: AuditLogger;
 
-  constructor(cacheDir?: string) {
-    this.cacheDir = cacheDir || join(tmpdir(), 'coding-agent-fabric-cache');
+  constructor(options: { cacheDir?: string; auditLogger?: AuditLogger } = {}) {
+    this.cacheDir = options.cacheDir || join(tmpdir(), 'coding-agent-fabric-cache');
+    this.auditLogger = options.auditLogger || auditLogger;
   }
 
   /**
@@ -443,7 +446,10 @@ export class SourceParser {
             await writeFile(targetPath, file.content, { mode: file.mode });
           }
         } catch (error) {
-          console.warn(`Skipping file ${file.path} due to security validation: ${error}`);
+          this.auditLogger.warning('source-parser-file-security-skip', file.path, 'source-parser', {
+            error: (error as Error).message,
+            targetDir,
+          });
         }
       }
 
@@ -469,7 +475,10 @@ export class SourceParser {
 
       // Prevent Zip Slip by ensuring the relative path doesn't go outside the base directory
       if (relativePath.startsWith('..') || isAbsolute(relativePath)) {
-        console.warn(`Skipping potentially dangerous file path: ${relativePath}`);
+        this.auditLogger.warning('source-parser-zip-slip-attempt', relativePath, 'source-parser', {
+          baseDir: base,
+          fullPath,
+        });
         continue;
       }
 
@@ -538,13 +547,17 @@ export class SourceParser {
             totalSize += stats.size;
           } catch (error) {
             // Log error but continue
-            console.warn(`Failed to get size of ${fullPath}: ${error}`);
+            this.auditLogger.warning('source-parser-size-failed', fullPath, 'source-parser', {
+              error: (error as Error).message,
+            });
           }
         }
       }
     } catch (error) {
       // Log error but return what we have so far
-      console.warn(`Failed to get directory size for ${dir}: ${error}`);
+      this.auditLogger.warning('source-parser-dir-size-failed', dir, 'source-parser', {
+        error: (error as Error).message,
+      });
     }
 
     return totalSize;

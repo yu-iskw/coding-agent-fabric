@@ -197,7 +197,11 @@ export class MCPHandler extends BaseResourceHandler {
 
       // Write updated config
       await fs.writeFile(configPath, JSON.stringify(existingConfig, null, 2), 'utf-8');
-      this.context.log.info(`Installed MCP server '${resource.name}' to ${configPath}`);
+      this.context.audit?.success('install-mcp-server', resource.name, this.type, configPath, {
+        agent: target.agent,
+        scope: target.scope,
+        serverType: metadata.serverType,
+      });
     }
   }
 
@@ -221,15 +225,35 @@ export class MCPHandler extends BaseResourceHandler {
 
           // Write updated config
           await fs.writeFile(configPath, JSON.stringify(config, null, 2), 'utf-8');
-          this.context.log.info(`Removed MCP server '${resource.name}' from ${configPath}`);
+          this.context.audit?.success('remove-mcp-server', resource.name, this.type, configPath, {
+            agent: target.agent,
+            scope: target.scope,
+          });
         } else if (!options.force) {
+          this.context.audit?.failure(
+            'remove-mcp-server',
+            resource.name,
+            this.type,
+            `MCP server '${resource.name}' not found`,
+            configPath,
+          );
           throw new Error(`MCP server '${resource.name}' not found in ${configPath}`);
         }
       } catch (error) {
         if (!options.force) {
+          this.context.audit?.failure(
+            'remove-mcp-server',
+            resource.name,
+            this.type,
+            (error as Error).message,
+            configPath,
+          );
           throw error;
         }
-        this.context.log.warn(`Failed to remove MCP server from ${configPath}:`, error);
+        this.context.audit?.warning('remove-mcp-server-failed', resource.name, this.type, {
+          configPath,
+          error: (error as Error).message,
+        });
       }
     }
   }

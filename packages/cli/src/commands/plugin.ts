@@ -82,7 +82,10 @@ async function listPlugins(): Promise<void> {
     join(homedir(), '.coding-agent-fabric', 'plugins'),
   ];
 
-  const manager = new PluginManager(searchPaths);
+  const manager = new PluginManager({
+    searchPaths,
+    projectRoot,
+  });
   await manager.loadAll();
 
   const plugins = manager.listPlugins();

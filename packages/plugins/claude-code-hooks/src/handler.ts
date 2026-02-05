@@ -142,7 +142,11 @@ export class ClaudeCodeHooksHandler extends BaseResourceHandler {
 
         if (file.content) {
           await fs.writeFile(targetPath, file.content, 'utf-8');
-          this.context.log.info(`Installed hook: ${targetPath}`);
+          this.context.audit?.success('install-hook', resource.name, this.type, targetPath, {
+            agent: target.agent,
+            scope: target.scope,
+            hookType: (resource.metadata as any).hookType,
+          });
         }
       }
     }
@@ -164,12 +168,25 @@ export class ClaudeCodeHooksHandler extends BaseResourceHandler {
 
         try {
           await fs.unlink(targetPath);
-          this.context.log.info(`Removed hook: ${targetPath}`);
+          this.context.audit?.success('remove-hook', resource.name, this.type, targetPath, {
+            agent: target.agent,
+            scope: target.scope,
+          });
         } catch (error) {
           if (!options.force) {
+            this.context.audit?.failure(
+              'remove-hook',
+              resource.name,
+              this.type,
+              (error as Error).message,
+              targetPath,
+            );
             throw error;
           }
-          this.context.log.warn(`Failed to remove ${targetPath}:`, error);
+          this.context.audit?.warning('remove-hook-failed', resource.name, this.type, {
+            targetPath,
+            error: (error as Error).message,
+          });
         }
       }
     }

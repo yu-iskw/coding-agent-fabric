@@ -2,7 +2,7 @@
  * Plugin manifest and metadata types
  */
 
-import type { AgentType } from '@coding-agent-fabric/common';
+import type { AgentType, AuditRecord, AuditOutcome } from '@coding-agent-fabric/common';
 
 /**
  * Plugin manifest schema (plugin.json)
@@ -107,6 +107,30 @@ export interface PluginContext {
     info: (message: string, ...args: unknown[]) => void;
     warn: (message: string, ...args: unknown[]) => void;
     error: (message: string, ...args: unknown[]) => void;
+  };
+  /** Audit instance */
+  audit?: {
+    success: (
+      action: string,
+      resourceName: string,
+      resourceType: string,
+      targetPath?: string,
+      details?: Record<string, unknown>,
+    ) => void;
+    failure: (
+      action: string,
+      resourceName: string,
+      resourceType: string,
+      error: string,
+      targetPath?: string,
+      details?: Record<string, unknown>,
+    ) => void;
+    warning: (
+      action: string,
+      resourceName: string,
+      resourceType: string,
+      details?: Record<string, unknown>,
+    ) => void;
   };
 }
 

@@ -29,11 +29,13 @@ import {
 } from '@coding-agent-fabric/common';
 import { ResourceHandler } from '@coding-agent-fabric/plugin-api';
 import { AgentRegistry } from './agent-registry.js';
+import { auditLogger, AuditLogger } from './audit-logger.js';
 
 export interface SkillsHandlerOptions {
   agentRegistry: AgentRegistry;
   projectRoot: string;
   globalRoot?: string;
+  auditLogger?: AuditLogger;
 }
 
 /**
@@ -48,11 +50,17 @@ export class SkillsHandler implements ResourceHandler {
   private agentRegistry: AgentRegistry;
   private projectRoot: string;
   private globalRoot?: string;
+  private auditLogger: AuditLogger;
 
   constructor(options: SkillsHandlerOptions) {
     this.agentRegistry = options.agentRegistry;
     this.projectRoot = options.projectRoot;
     this.globalRoot = options.globalRoot;
+    this.auditLogger = options.auditLogger || auditLogger;
+
+    // Configure audit logger with roots for path sanitization
+    if (this.projectRoot) this.auditLogger.setProjectRoot(this.projectRoot);
+    if (this.globalRoot) this.auditLogger.setGlobalRoot(this.globalRoot);
   }
 
   /**
@@ -179,7 +187,11 @@ export class SkillsHandler implements ResourceHandler {
         }
       }
 
-      console.log('Installed skill %s to %s', resource.name, targetPath);
+      this.auditLogger.success('install-skill', resource.name, this.type, targetPath, {
+        agent: target.agent,
+        scope: target.scope,
+        mode: target.mode,
+      });
     }
   }
 
@@ -197,13 +209,20 @@ export class SkillsHandler implements ResourceHandler {
       const targetPath = join(installPath, sanitizeFileName(resource.name));
 
       if (!existsSync(targetPath)) {
-        console.warn('Skill %s not found at %s', resource.name, targetPath);
+        this.auditLogger.warning('remove-skill-not-found', resource.name, this.type, {
+          targetPath,
+          agent: target.agent,
+          scope: target.scope,
+        });
         continue;
       }
 
       // Remove the skill directory
       await rm(targetPath, { recursive: true, force: true });
-      console.log('Removed skill %s from %s', resource.name, targetPath);
+      this.auditLogger.success('remove-skill', resource.name, this.type, targetPath, {
+        agent: target.agent,
+        scope: target.scope,
+      });
     }
   }
 

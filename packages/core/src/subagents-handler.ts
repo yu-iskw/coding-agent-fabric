@@ -26,11 +26,13 @@ import {
 } from '@coding-agent-fabric/common';
 import { ResourceHandler } from '@coding-agent-fabric/plugin-api';
 import { AgentRegistry } from './agent-registry.js';
+import { auditLogger, AuditLogger } from './audit-logger.js';
 
 export interface SubagentsHandlerOptions {
   agentRegistry: AgentRegistry;
   projectRoot: string;
   globalRoot?: string;
+  auditLogger?: AuditLogger;
 }
 
 /**
@@ -69,11 +71,17 @@ export class SubagentsHandler implements ResourceHandler {
   private agentRegistry: AgentRegistry;
   private projectRoot: string;
   private globalRoot?: string;
+  private auditLogger: AuditLogger;
 
   constructor(options: SubagentsHandlerOptions) {
     this.agentRegistry = options.agentRegistry;
     this.projectRoot = options.projectRoot;
     this.globalRoot = options.globalRoot;
+    this.auditLogger = options.auditLogger || auditLogger;
+
+    // Configure audit logger with roots for path sanitization
+    if (this.projectRoot) this.auditLogger.setProjectRoot(this.projectRoot);
+    if (this.globalRoot) this.auditLogger.setGlobalRoot(this.globalRoot);
   }
 
   /**
@@ -192,7 +200,11 @@ export class SubagentsHandler implements ResourceHandler {
         }
       }
 
-      console.log('Installed subagent %s to %s', resource.name, installPath);
+      this.auditLogger.success('install-subagent', resource.name, this.type, installPath, {
+        agent: target.agent,
+        scope: target.scope,
+        format: targetFormat,
+      });
     }
   }
 
@@ -223,7 +235,10 @@ export class SubagentsHandler implements ResourceHandler {
       for (const p of possiblePaths) {
         if (existsSync(p)) {
           await unlink(p);
-          console.log('Removed subagent file %s from %s', resource.name, p);
+          this.auditLogger.success('remove-subagent-file', resource.name, this.type, p, {
+            agent: target.agent,
+            scope: target.scope,
+          });
           removed = true;
         }
       }
@@ -232,12 +247,25 @@ export class SubagentsHandler implements ResourceHandler {
       const subagentInstallDir = safeJoin(installPath, sanitizeFileName(resource.name));
       if (existsSync(subagentInstallDir)) {
         await rm(subagentInstallDir, { recursive: true, force: true });
-        console.log('Removed subagent directory %s', subagentInstallDir);
+        this.auditLogger.success(
+          'remove-subagent-dir',
+          resource.name,
+          this.type,
+          subagentInstallDir,
+          {
+            agent: target.agent,
+            scope: target.scope,
+          },
+        );
         removed = true;
       }
 
       if (!removed) {
-        console.warn('Subagent %s not found at %s', resource.name, targetPath);
+        this.auditLogger.warning('remove-subagent-not-found', resource.name, this.type, {
+          targetPath,
+          agent: target.agent,
+          scope: target.scope,
+        });
       }
     }
   }

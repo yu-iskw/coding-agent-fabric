@@ -18,6 +18,10 @@ export type { SubagentsHandlerOptions } from './subagents-handler.js';
 // Export PluginManager
 export { PluginManager } from './plugin-manager.js';
 
+// Export AuditLogger
+export { AuditLogger, auditLogger } from './audit-logger.js';
+export type { AuditLoggerOptions } from './audit-logger.js';
+
 // Re-export common types for convenience
 export type {
   PluginLockEntry,

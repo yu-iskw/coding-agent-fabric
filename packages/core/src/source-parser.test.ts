@@ -20,7 +20,7 @@ describe('SourceParser', () => {
       `source-parser-test-${Date.now()}-${Math.random().toString(36).slice(2)}`,
     );
     await mkdir(testDir, { recursive: true });
-    parser = new SourceParser(testDir);
+    parser = new SourceParser({ cacheDir: testDir });
   });
 
   afterEach(async () => {
@@ -117,7 +117,7 @@ describe('SourceParser', () => {
   describe('cache directory', () => {
     it('should create cache directory if it does not exist', async () => {
       const cacheDir = join(testDir, 'custom-cache');
-      const customParser = new SourceParser(cacheDir);
+      const customParser = new SourceParser({ cacheDir });
 
       // Create a local source to trigger cache directory creation
       const localDir = join(testDir, 'source');

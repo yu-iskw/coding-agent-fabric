@@ -6,6 +6,7 @@ import { readdir, readFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join, resolve, dirname } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { auditLogger } from './audit-logger.js';
 import {
   PluginManifest,
   PluginMetadata,
@@ -20,9 +21,17 @@ export class PluginManager implements PluginRegistry, PluginLoader, PluginDiscov
   private plugins: Map<string, PluginMetadata> = new Map();
   private handlers: Map<string, ResourceHandler> = new Map();
   private searchPaths: string[] = [];
+  private projectRoot?: string;
+  private globalRoot?: string;
 
-  constructor(searchPaths: string[] = []) {
-    this.searchPaths = searchPaths;
+  constructor(options: { searchPaths?: string[]; projectRoot?: string; globalRoot?: string } = {}) {
+    this.searchPaths = options.searchPaths || [];
+    this.projectRoot = options.projectRoot;
+    this.globalRoot = options.globalRoot;
+
+    // Configure audit logger with roots for path sanitization
+    if (this.projectRoot) auditLogger.setProjectRoot(this.projectRoot);
+    if (this.globalRoot) auditLogger.setGlobalRoot(this.globalRoot);
   }
 
   // PluginRegistry implementation
@@ -99,7 +108,7 @@ export class PluginManager implements PluginRegistry, PluginLoader, PluginDiscov
       throw new Error(`Plugin at ${entryPath} does not export a valid createHandler function`);
     }
 
-    // Create a mock context for now
+    // Create context for plugin
     const context = {
       version: '0.1.0',
       configDir: dirname(manifestPath),
@@ -109,6 +118,29 @@ export class PluginManager implements PluginRegistry, PluginLoader, PluginDiscov
         info: console.info,
         warn: console.warn,
         error: console.error,
+      },
+      audit: {
+        success: (
+          action: string,
+          resourceName: string,
+          resourceType: string,
+          targetPath?: string,
+          details?: Record<string, unknown>,
+        ) => auditLogger.success(action, resourceName, resourceType, targetPath, details),
+        failure: (
+          action: string,
+          resourceName: string,
+          resourceType: string,
+          error: string,
+          targetPath?: string,
+          details?: Record<string, unknown>,
+        ) => auditLogger.failure(action, resourceName, resourceType, error, targetPath, details),
+        warning: (
+          action: string,
+          resourceName: string,
+          resourceType: string,
+          details?: Record<string, unknown>,
+        ) => auditLogger.warning(action, resourceName, resourceType, details),
       },
     };
 

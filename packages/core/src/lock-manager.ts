@@ -25,10 +25,12 @@ import {
   DEFAULT_UPDATE_STRATEGY,
   DEFAULT_HISTORY_LIMIT,
 } from '@coding-agent-fabric/common';
+import { auditLogger, AuditLogger } from './audit-logger.js';
 
 export interface LockManagerOptions {
   projectRoot: string;
   globalRoot?: string;
+  auditLogger?: AuditLogger;
 }
 
 /**
@@ -38,11 +40,17 @@ export class LockManager {
   private projectRoot: string;
   private globalRoot?: string;
   private lockFilePath: string;
+  private auditLogger: AuditLogger;
 
   constructor(options: LockManagerOptions) {
     this.projectRoot = options.projectRoot;
     this.globalRoot = options.globalRoot;
     this.lockFilePath = join(this.projectRoot, CONFIG_DIR_NAME, LOCK_FILE_NAME);
+    this.auditLogger = options.auditLogger || auditLogger;
+
+    // Configure audit logger with roots for path sanitization
+    if (this.projectRoot) this.auditLogger.setProjectRoot(this.projectRoot);
+    if (this.globalRoot) this.auditLogger.setGlobalRoot(this.globalRoot);
   }
 
   /**
@@ -158,6 +166,10 @@ export class LockManager {
 
     lockFile.resources[entry.name] = entry;
     await this.save(lockFile);
+    this.auditLogger.success('lock-add-resource', entry.name, entry.type, this.lockFilePath, {
+      version: entry.version,
+      handler: entry.handler,
+    });
   }
 
   /**
@@ -202,6 +214,17 @@ export class LockManager {
 
     lockFile.resources[name] = rolledBackEntry;
     await this.save(lockFile);
+
+    this.auditLogger.success(
+      'lock-rollback-resource',
+      name,
+      rolledBackEntry.type,
+      this.lockFilePath,
+      {
+        fromVersion: entry.version,
+        toVersion: rolledBackEntry.version,
+      },
+    );
 
     return rolledBackEntry;
   }
@@ -265,8 +288,12 @@ export class LockManager {
    */
   async removeResource(name: string): Promise<void> {
     const lockFile = await this.load();
+    const entry = lockFile.resources[name];
     delete lockFile.resources[name];
     await this.save(lockFile);
+    if (entry) {
+      this.auditLogger.success('lock-remove-resource', name, entry.type, this.lockFilePath);
+    }
   }
 
   /**

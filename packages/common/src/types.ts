@@ -277,6 +277,26 @@ export interface PluginResourceLockEntry extends BaseResourceLockEntry {
 export type ResourceLockEntry = SkillLockEntry | SubagentLockEntry | PluginResourceLockEntry;
 
 /**
+ * Audit outcome
+ */
+export type AuditOutcome = 'success' | 'failure' | 'warning';
+
+/**
+ * Audit record for critical system actions
+ */
+export interface AuditRecord {
+  timestamp: string; // ISO 8601
+  actorId: string; // User or system identifier
+  action: string; // e.g., 'install-skill', 'remove-skill'
+  resourceName: string;
+  resourceType: string;
+  targetPath?: string;
+  outcome: AuditOutcome;
+  details?: Record<string, unknown>;
+  error?: string;
+}
+
+/**
  * Lock file configuration
  */
 export interface LockFileConfig {
