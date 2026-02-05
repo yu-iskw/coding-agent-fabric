@@ -102,7 +102,12 @@ export class SubagentsHandler implements ResourceHandler {
     for (const configPath of configFiles) {
       const configDir = dirname(configPath);
       const ext = extname(configPath);
-      const format = ext === '.json' ? 'coding-agent-fabric-json' : 'claude-code-yaml';
+      const format =
+        ext === '.json'
+          ? 'coding-agent-fabric-json'
+          : ext === '.md'
+            ? 'markdown-frontmatter'
+            : 'claude-code-yaml';
 
       // Parse subagent config
       const config = await this.parseSubagentConfig(configPath, format);
@@ -359,8 +364,13 @@ export class SubagentsHandler implements ResourceHandler {
         // Recurse into subdirectory
         const subFiles = await this.findSubagentFiles(fullPath);
         configFiles.push(...subFiles);
-      } else if (entry.isFile() && SUBAGENT_FILE_NAMES.includes(entry.name)) {
-        configFiles.push(fullPath);
+      } else if (entry.isFile()) {
+        const isSubagentFile =
+          SUBAGENT_FILE_NAMES.includes(entry.name) ||
+          (entry.name.endsWith('.md') && (dir.endsWith('agents') || dir.endsWith('subagents')));
+        if (isSubagentFile) {
+          configFiles.push(fullPath);
+        }
       }
     }
 
@@ -372,13 +382,54 @@ export class SubagentsHandler implements ResourceHandler {
    */
   private async parseSubagentConfig(
     filePath: string,
-    format: 'coding-agent-fabric-json' | 'claude-code-yaml',
+    format: 'coding-agent-fabric-json' | 'claude-code-yaml' | 'markdown-frontmatter',
   ): Promise<SubagentConfig> {
     const content = await readFile(filePath, 'utf-8');
 
     if (format === 'coding-agent-fabric-json') {
       const config = JSON.parse(content) as SubagentConfig;
       return config;
+    } else if (format === 'markdown-frontmatter') {
+      // Parse markdown with frontmatter
+      const metadata: { name?: string; version?: string; description?: string; model?: string } =
+        {};
+
+      // Extract front matter if present
+      const frontMatterMatch = content.match(/^---\n([\s\S]*?)\n---/);
+      let instructions = content;
+
+      if (frontMatterMatch) {
+        const frontMatter = frontMatterMatch[1];
+        const nameMatch = frontMatter.match(/^name:\s*(.+)$/m);
+        const versionMatch = frontMatter.match(/^version:\s*(.+)$/m);
+        const descMatch = frontMatter.match(/^description:\s*(.+)$/m);
+        const modelMatch = frontMatter.match(/^model:\s*(.+)$/m);
+
+        if (nameMatch) metadata.name = nameMatch[1].trim();
+        if (versionMatch) metadata.version = versionMatch[1].trim();
+        if (descMatch) metadata.description = descMatch[1].trim();
+        if (modelMatch) metadata.model = modelMatch[1].trim();
+
+        instructions = content.replace(frontMatterMatch[0], '').trim();
+      }
+
+      // Fallback for name from first heading
+      if (!metadata.name) {
+        const headingMatch = content.match(/^#\s+(.+)$/m);
+        if (headingMatch) {
+          metadata.name = headingMatch[1].trim();
+        } else {
+          metadata.name = basename(filePath, '.md');
+        }
+      }
+
+      return {
+        name: metadata.name,
+        version: metadata.version,
+        description: metadata.description || '',
+        model: metadata.model,
+        instructions,
+      };
     } else {
       // Parse YAML (simple implementation - in production use a YAML library)
       const config = this.parseSimpleYaml(content);
@@ -523,9 +574,13 @@ export class SubagentsHandler implements ResourceHandler {
     targetFormat: 'coding-agent-fabric-json' | 'claude-code-yaml',
   ): Promise<string> {
     // Extract config from resource files
-    const configFile = resource.files.find((f) =>
-      SUBAGENT_FILE_NAMES.some((name) => basename(f.path).includes(name.split('.')[0])),
-    );
+    const configFile = resource.files.find((f) => {
+      const bname = basename(f.path);
+      return (
+        SUBAGENT_FILE_NAMES.some((name) => bname.includes(name.split('.')[0])) ||
+        (bname.endsWith('.md') && sourceFormat === 'markdown-frontmatter')
+      );
+    });
 
     if (!configFile || !configFile.content) {
       throw new Error('No config file found in resource');
@@ -535,6 +590,35 @@ export class SubagentsHandler implements ResourceHandler {
     let config: SubagentConfig;
     if (sourceFormat === 'coding-agent-fabric-json') {
       config = JSON.parse(configFile.content);
+    } else if (sourceFormat === 'markdown-frontmatter') {
+      // Reuse parseSubagentConfig logic or similar
+      const metadata: { name?: string; version?: string; description?: string; model?: string } =
+        {};
+      const content = configFile.content;
+      const frontMatterMatch = content.match(/^---\n([\s\S]*?)\n---/);
+      let instructions = content;
+
+      if (frontMatterMatch) {
+        const frontMatter = frontMatterMatch[1];
+        const nameMatch = frontMatter.match(/^name:\s*(.+)$/m);
+        const versionMatch = frontMatter.match(/^version:\s*(.+)$/m);
+        const descMatch = frontMatter.match(/^description:\s*(.+)$/m);
+        const modelMatch = frontMatter.match(/^model:\s*(.+)$/m);
+
+        if (nameMatch) metadata.name = nameMatch[1].trim();
+        if (versionMatch) metadata.version = versionMatch[1].trim();
+        if (descMatch) metadata.description = descMatch[1].trim();
+        if (modelMatch) metadata.model = modelMatch[1].trim();
+
+        instructions = content.replace(frontMatterMatch[0], '').trim();
+      }
+
+      config = {
+        name: metadata.name || resource.name,
+        description: metadata.description || resource.description,
+        model: metadata.model,
+        instructions,
+      };
     } else {
       const yamlConfig = this.parseSimpleYaml(configFile.content);
       config = {

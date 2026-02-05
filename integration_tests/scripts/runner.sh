@@ -68,4 +68,53 @@ caf skills list | grep "document-skills" || caf skills list | grep -i "pdf" || {
 echo "Scenario 7: Checking subagents list..."
 caf subagents list || { echo -e "${RED}Subagents list command failed${NC}"; exit 1; }
 
+# 8. Install real skills from yu-iskw/github-project-skills
+echo "Scenario 8: Installing real skills from yu-iskw/github-project-skills..."
+cd /tmp/repos
+git clone --depth 1 https://github.com/yu-iskw/github-project-skills.git
+
+echo "Adding skills from github-project-skills..."
+cd /test-workspace
+if [ ! -f "/tmp/repos/github-project-skills/package.json" ]; then
+    echo '{ "name": "github-project-skills", "version": "1.0.0" }' > /tmp/repos/github-project-skills/package.json
+fi
+caf skills add /tmp/repos/github-project-skills --yes --force || { echo -e "${RED}Failed to add github-project-skills skills${NC}"; exit 1; }
+caf subagents add /tmp/repos/github-project-skills --yes --force || { echo -e "${RED}Failed to add github-project-skills subagents${NC}"; exit 1; }
+
+echo "Verifying github-project-skills installation..."
+caf skills list | grep "gh-listing-issues" || { echo -e "${RED}github-project-skills skill verification failed${NC}"; exit 1; }
+caf subagents list | grep "github-project-manager" || { echo -e "${RED}github-project-skills subagent verification failed${NC}"; exit 1; }
+
+# 9. Install real skills from yu-iskw/meta-agent-skills
+echo "Scenario 9: Installing real skills from yu-iskw/meta-agent-skills..."
+cd /tmp/repos
+git clone --depth 1 https://github.com/yu-iskw/meta-agent-skills.git
+
+echo "Adding skills from meta-agent-skills..."
+cd /test-workspace
+if [ ! -f "/tmp/repos/meta-agent-skills/package.json" ]; then
+    echo '{ "name": "meta-agent-skills", "version": "1.0.0" }' > /tmp/repos/meta-agent-skills/package.json
+fi
+caf skills add /tmp/repos/meta-agent-skills --yes --force || { echo -e "${RED}Failed to add meta-agent-skills skills${NC}"; exit 1; }
+caf subagents add /tmp/repos/meta-agent-skills --yes --force || { echo -e "${RED}Failed to add meta-agent-skills subagents${NC}"; exit 1; }
+
+echo "Verifying meta-agent-skills installation..."
+caf skills list | grep "meta-agent-skills" || { echo -e "${RED}meta-agent-skills verification failed${NC}"; exit 1; }
+caf subagents list | grep "maintainer-agent" || { echo -e "${RED}meta-agent-skills subagent verification failed${NC}"; exit 1; }
+
+# 10. Install real skills from yu-iskw/coding-agent-skills
+echo "Scenario 10: Installing real skills from yu-iskw/coding-agent-skills..."
+cd /tmp/repos
+git clone --depth 1 https://github.com/yu-iskw/coding-agent-skills.git
+
+echo "Adding skills from coding-agent-skills..."
+cd /test-workspace
+if [ ! -f "/tmp/repos/coding-agent-skills/package.json" ]; then
+    echo '{ "name": "coding-agent-skills", "version": "1.0.0" }' > /tmp/repos/coding-agent-skills/package.json
+fi
+caf skills add /tmp/repos/coding-agent-skills --yes --force || { echo -e "${RED}Failed to add coding-agent-skills${NC}"; exit 1; }
+
+echo "Verifying coding-agent-skills installation..."
+caf skills list | grep "claude-code-cli" || { echo -e "${RED}coding-agent-skills verification failed${NC}"; exit 1; }
+
 echo -e "${GREEN}Integration tests with real skills passed!${NC}"

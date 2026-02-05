@@ -11,7 +11,7 @@ An autonomous loop for the agent to identify, fix, and verify linting and format
 
 ## Loop Logic
 
-1. **Identify**: Run `pnpm lint` (which executes `trunk check -y`) to list current violations. For a comprehensive check across the entire project, use `pnpm lint:all`. You can also run `pnpm lint:eslint` for focused ESLint checks.
+1. **Identify**: Run `pnpm lint` (which executes `trunk check -y` and `eslint .`) to list current violations. For a comprehensive check across the entire project, use `pnpm lint:all` (executes `trunk check --all` and `eslint .`). You can also run `pnpm lint:eslint` for focused ESLint checks.
 2. **Analyze**: Examine the output from Trunk or ESLint, focusing on the file path, line number, and error message. Refer to [../common-references/troubleshooting.md](../common-references/troubleshooting.md) for environment or runtime issues.
 3. **Fix**:
    - For formatting issues, run `pnpm format` (which executes `trunk fmt`). To format all files in the project, use `pnpm format:all`.
