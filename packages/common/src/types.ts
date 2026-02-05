@@ -214,3 +214,86 @@ export interface PluginLockEntry {
   enabled: boolean;
   location: PluginLocation;
 }
+
+/**
+ * Base resource lock entry
+ */
+export interface BaseResourceLockEntry {
+  type: string;
+  name: string;
+  version?: string;
+  handler: string;
+  source: string;
+  sourceType: SourceType;
+  sourceUrl: string;
+  installedAt: string;
+  updatedAt: string;
+  installedFor: {
+    agent: AgentType;
+    scope: Scope;
+    path: string;
+  }[];
+  history?: {
+    version?: string;
+    updatedAt: string;
+    source: string;
+    metadata?: Record<string, unknown>;
+  }[];
+}
+
+/**
+ * Skill lock entry
+ */
+export interface SkillLockEntry extends BaseResourceLockEntry {
+  type: 'skills';
+  skillFolderHash?: string;
+  categories: string[];
+  namingStrategy: NamingStrategy;
+  originalName: string;
+  installedName: string;
+  sourcePath: string;
+}
+
+/**
+ * Subagent lock entry
+ */
+export interface SubagentLockEntry extends BaseResourceLockEntry {
+  type: 'subagents';
+  model?: string;
+  format: 'coding-agent-fabric-json' | 'claude-code-yaml' | 'markdown-frontmatter';
+  configHash: string;
+}
+
+/**
+ * Plugin-managed resource lock entry
+ */
+export interface PluginResourceLockEntry extends BaseResourceLockEntry {
+  metadata: Record<string, unknown>;
+}
+
+/**
+ * Union type for all resource lock entries
+ */
+export type ResourceLockEntry = SkillLockEntry | SubagentLockEntry | PluginResourceLockEntry;
+
+/**
+ * Lock file configuration
+ */
+export interface LockFileConfig {
+  preferredAgents: AgentType[];
+  defaultScope: Scope;
+  historyLimit: number;
+  updateStrategy: UpdateStrategy;
+  namingStrategy?: NamingStrategy;
+}
+
+/**
+ * Lock file schema (v2)
+ */
+export interface LockFile {
+  version: number;
+  lastUpdated: string;
+  config: LockFileConfig;
+  plugins: Record<string, PluginLockEntry>;
+  resources: Record<string, ResourceLockEntry>;
+}

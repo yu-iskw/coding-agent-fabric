@@ -3,6 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { existsSync } from 'node:fs';
 import { mkdir, writeFile, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
@@ -237,6 +238,52 @@ instructions: YAML instructions
       expect(() => {
         handler.getInstallPath('no-subagents', 'project');
       }).toThrow('does not support subagents');
+    });
+  });
+
+  describe('install', () => {
+    it('should install subagent with multiple files into a subdirectory', async () => {
+      const resource: Resource = {
+        type: 'subagents',
+        name: 'multi-file-agent',
+        description: 'A test subagent with multiple files',
+        metadata: {
+          format: 'coding-agent-fabric-json',
+        },
+        files: [
+          {
+            path: 'subagent.json',
+            content: JSON.stringify({ name: 'multi-file-agent', description: 'desc' }),
+          },
+          {
+            path: 'instructions.md',
+            content: 'Detailed instructions',
+          },
+          {
+            path: 'tools/custom-tool.js',
+            content: 'module.exports = {}',
+          },
+        ],
+      };
+
+      const targets = [{ agent: 'claude-code' as const, scope: 'project' as const }];
+      const options = { force: true };
+
+      await handler.install(resource, targets, options);
+
+      const installPath = handler.getInstallPath('claude-code', 'project');
+      const yamlPath = join(installPath, 'multi-file-agent.yaml');
+      const subagentDir = join(installPath, 'multi-file-agent');
+
+      // Check YAML file exists and is converted
+      expect(existsSync(yamlPath)).toBe(true);
+
+      // Check subdirectory exists
+      expect(existsSync(subagentDir)).toBe(true);
+
+      // Check support files exist in subdirectory
+      expect(existsSync(join(subagentDir, 'instructions.md'))).toBe(true);
+      expect(existsSync(join(subagentDir, 'custom-tool.js'))).toBe(true);
     });
   });
 });

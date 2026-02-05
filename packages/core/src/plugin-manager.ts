@@ -117,7 +117,7 @@ export class PluginManager implements PluginRegistry, PluginLoader, PluginDiscov
     const metadata: PluginMetadata = {
       manifest,
       path: pluginPath,
-      bundled: pluginPath.includes('packages/plugins'),
+      bundled: pluginPath.includes(join('packages', 'plugins')),
       enabled: true,
       loadedAt: getCurrentTimestamp(),
     };

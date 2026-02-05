@@ -2,7 +2,7 @@
  * SubagentsHandler - Manages subagent resources
  */
 
-import { readFile, writeFile, mkdir, readdir, stat, unlink } from 'node:fs/promises';
+import { readFile, writeFile, mkdir, readdir, stat, unlink, rm } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join, basename, dirname, extname } from 'node:path';
 import type {
@@ -22,6 +22,7 @@ import {
   SUBAGENT_FILE_NAMES,
   EXCLUDE_PATTERNS,
   sanitizeFileName,
+  safeJoin,
 } from '@coding-agent-fabric/common';
 import { ResourceHandler } from '@coding-agent-fabric/plugin-api';
 import { AgentRegistry } from './agent-registry.js';
@@ -155,22 +156,42 @@ export class SubagentsHandler implements ResourceHandler {
       // Ensure install directory exists
       await mkdir(installPath, { recursive: true });
 
-      // Determine target format based on agent
+      // Create a subagent-specific subdirectory for support files
+      const subagentInstallDir = safeJoin(installPath, sanitizeFileName(resource.name));
+      await mkdir(subagentInstallDir, { recursive: true });
+
+      // Determine target format and main config path
       const targetFormat = this.getTargetFormat(target.agent);
       const targetFileName = this.getTargetFileName(resource.name, targetFormat);
-      const targetPath = join(installPath, targetFileName);
+      const mainConfigTargetPath = safeJoin(installPath, targetFileName);
 
       // Check if already exists
-      if (existsSync(targetPath) && !options.force) {
-        throw new Error(`Subagent ${resource.name} already exists at ${targetPath}`);
+      if (existsSync(mainConfigTargetPath) && !options.force) {
+        throw new Error(`Subagent ${resource.name} already exists at ${mainConfigTargetPath}`);
       }
 
-      // Convert and write config
-      const sourceFormat = (resource.metadata.format as string) || 'coding-agent-fabric-json';
-      const configContent = await this.convertFormat(resource, sourceFormat, targetFormat);
+      // Install all files
+      for (const file of resource.files) {
+        const fileName = basename(file.path);
+        const isMainConfig =
+          SUBAGENT_FILE_NAMES.some((name) => fileName.startsWith(name.split('.')[0])) ||
+          (fileName.endsWith('.md') &&
+            (resource.metadata.format === 'markdown-frontmatter' ||
+              fileName === `${resource.name}.md`));
 
-      await writeFile(targetPath, configContent, 'utf-8');
-      console.log('Installed subagent %s to %s', resource.name, targetPath);
+        if (isMainConfig) {
+          // Special handling for the main config file to allow format conversion
+          const sourceFormat = (resource.metadata.format as string) || 'coding-agent-fabric-json';
+          const configContent = await this.convertFormat(resource, sourceFormat, targetFormat);
+          await writeFile(mainConfigTargetPath, configContent, 'utf-8');
+        } else if (file.content !== undefined) {
+          // Copy other files as-is into the subdirectory
+          const targetFilePath = safeJoin(subagentInstallDir, fileName);
+          await writeFile(targetFilePath, file.content, { mode: file.mode });
+        }
+      }
+
+      console.log('Installed subagent %s to %s', resource.name, installPath);
     }
   }
 
@@ -201,9 +222,17 @@ export class SubagentsHandler implements ResourceHandler {
       for (const p of possiblePaths) {
         if (existsSync(p)) {
           await unlink(p);
-          console.log('Removed subagent %s from %s', resource.name, p);
+          console.log('Removed subagent file %s from %s', resource.name, p);
           removed = true;
         }
+      }
+
+      // Also remove the support files directory
+      const subagentInstallDir = safeJoin(installPath, sanitizeFileName(resource.name));
+      if (existsSync(subagentInstallDir)) {
+        await rm(subagentInstallDir, { recursive: true, force: true });
+        console.log('Removed subagent directory %s', subagentInstallDir);
+        removed = true;
       }
 
       if (!removed) {
@@ -226,7 +255,9 @@ export class SubagentsHandler implements ResourceHandler {
       for (const s of scopes) {
         try {
           const installPath = this.getInstallPath(agent, s);
-          if (!existsSync(installPath) || scannedPaths.has(installPath)) continue;
+          if (!existsSync(installPath) || scannedPaths.has(installPath)) {
+            continue;
+          }
           scannedPaths.add(installPath);
 
           const entries = await readdir(installPath, { withFileTypes: true });
@@ -277,8 +308,9 @@ export class SubagentsHandler implements ResourceHandler {
                       path: configPath,
                     });
                   }
-                } catch (_e) {
+                } catch (e) {
                   // Skip invalid configs
+                  console.error('Failed to parse subagent config at %s:', configPath, e);
                   continue;
                 }
               }
@@ -452,7 +484,7 @@ export class SubagentsHandler implements ResourceHandler {
       // Parse YAML (simple implementation - in production use a YAML library)
       const config = this.parseSimpleYaml(content);
       return {
-        name: config.name || basename(dirname(filePath)),
+        name: config.name || basename(filePath, extname(filePath)),
         description: config.description || '',
         model: config.model,
         instructions: config.instructions,
