@@ -2,7 +2,7 @@
  * Utility functions for coding-agent-fabric
  */
 
-import { sep } from 'node:path';
+import { sep, join, resolve, relative, isAbsolute } from 'node:path';
 import { ParsedSource, AgentType } from './types.js';
 
 /**
@@ -281,7 +281,22 @@ export function sanitizeFileName(name: string): string {
  * Check if a path is inside another path
  */
 export function isPathInside(childPath: string, parentPath: string): boolean {
-  const normalizedChild = normalizePath(childPath);
-  const normalizedParent = normalizePath(parentPath);
+  const normalizedChild = resolve(childPath);
+  const normalizedParent = resolve(parentPath);
   return normalizedChild.startsWith(normalizedParent + sep);
+}
+
+/**
+ * Safely join path parts and ensure the result is within a base directory.
+ * Prevents path traversal attacks.
+ */
+export function safeJoin(baseDir: string, ...parts: string[]): string {
+  const resolvedBase = resolve(baseDir);
+  const target = resolve(resolvedBase, ...parts);
+  const rel = relative(resolvedBase, target);
+
+  if (rel.startsWith('..') || isAbsolute(rel)) {
+    throw new Error(`Path traversal detected: ${target} is outside of ${resolvedBase}`);
+  }
+  return target;
 }

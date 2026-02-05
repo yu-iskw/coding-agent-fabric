@@ -17,6 +17,7 @@ import type {
   RemoveOptions,
   Scope,
 } from '@coding-agent-fabric/common';
+import { safeJoin } from '@coding-agent-fabric/common';
 import { promises as fs } from 'fs';
 import * as path from 'path';
 import * as os from 'os';
@@ -80,7 +81,7 @@ export class MCPHandler extends BaseResourceHandler {
 
         for (const entry of entries) {
           if (entry.isFile() && entry.name.endsWith('.json')) {
-            const mcpPath = path.join(mcpDir, entry.name);
+            const mcpPath = safeJoin(mcpDir, entry.name);
             const content = await fs.readFile(mcpPath, 'utf-8');
             const mcpConfig = JSON.parse(content);
 
@@ -126,6 +127,20 @@ export class MCPHandler extends BaseResourceHandler {
     }
 
     return resources;
+  }
+
+  /**
+   * Discover MCP servers from a local directory path
+   */
+  async discoverFromPath(directory: string, options?: DiscoverOptions): Promise<Resource[]> {
+    return this.discover(
+      {
+        type: 'local',
+        url: `file://${directory}`,
+        localPath: directory,
+      },
+      options,
+    );
   }
 
   /**

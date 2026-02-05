@@ -6,6 +6,7 @@ import {
   compareSemver,
   extractCategories,
   generateSmartName,
+  safeJoin,
   LOCK_FILE_VERSION,
   CORE_RESOURCE_TYPES,
 } from './index.js';
@@ -69,6 +70,29 @@ describe('@coding-agent-fabric/common', () => {
     it('should generate smart name', () => {
       const name = generateSmartName('patterns', ['frontend', 'react']);
       expect(name).toBe('frontend-react-patterns');
+    });
+  });
+
+  describe('path utilities', () => {
+    describe('safeJoin', () => {
+      it('should join safe paths', () => {
+        const base = '/tmp/base';
+        expect(safeJoin(base, 'file.txt')).toContain('/tmp/base/file.txt');
+        expect(safeJoin(base, 'subdir', 'file.txt')).toContain('/tmp/base/subdir/file.txt');
+      });
+
+      it('should throw on path traversal with ..', () => {
+        const base = '/tmp/base';
+        expect(() => safeJoin(base, '../outside.txt')).toThrow('Path traversal detected');
+        expect(() => safeJoin(base, 'subdir', '../../outside.txt')).toThrow(
+          'Path traversal detected',
+        );
+      });
+
+      it('should throw on absolute paths', () => {
+        const base = '/tmp/base';
+        expect(() => safeJoin(base, '/etc/passwd')).toThrow('Path traversal detected');
+      });
     });
   });
 

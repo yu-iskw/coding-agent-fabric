@@ -28,14 +28,12 @@ import {
 import { ResourceHandler } from '@coding-agent-fabric/plugin-api';
 import { AgentRegistry } from './agent-registry.js';
 import { LockManager } from './lock-manager.js';
-import { SourceParser } from './source-parser.js';
 
 export interface SkillsHandlerOptions {
   agentRegistry: AgentRegistry;
   lockManager: LockManager;
   projectRoot: string;
   globalRoot?: string;
-  sourceParser?: SourceParser;
 }
 
 /**
@@ -51,28 +49,33 @@ export class SkillsHandler implements ResourceHandler {
   private lockManager: LockManager;
   private projectRoot: string;
   private globalRoot?: string;
-  private sourceParser: SourceParser;
 
   constructor(options: SkillsHandlerOptions) {
     this.agentRegistry = options.agentRegistry;
     this.lockManager = options.lockManager;
     this.projectRoot = options.projectRoot;
     this.globalRoot = options.globalRoot;
-    this.sourceParser = options.sourceParser || new SourceParser();
   }
 
   /**
    * Discover skills from a source
    */
   async discover(source: ParsedSource, options?: DiscoverOptions): Promise<Resource[]> {
-    let localPath = source.localPath;
+    const localPath = source.localPath;
 
-    // If local path is not provided, download it first
     if (!localPath) {
-      const result = await this.sourceParser.parse(source.url);
-      localPath = result.localDir;
+      throw new Error(
+        'Local path is required for discovery. Please ensure the resource is installed.',
+      );
     }
 
+    return this.discoverFromPath(localPath, options);
+  }
+
+  /**
+   * Discover skills from a local directory path
+   */
+  async discoverFromPath(localPath: string, options?: DiscoverOptions): Promise<Resource[]> {
     const resources: Resource[] = [];
 
     // Recursively find all SKILL.md files

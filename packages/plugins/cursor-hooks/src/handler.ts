@@ -17,6 +17,7 @@ import type {
   RemoveOptions,
   Scope,
 } from '@coding-agent-fabric/common';
+import { safeJoin } from '@coding-agent-fabric/common';
 import { promises as fs } from 'fs';
 import * as path from 'path';
 import * as os from 'os';
@@ -58,7 +59,7 @@ export class CursorHooksHandler extends BaseResourceHandler {
 
         for (const entry of entries) {
           if (entry.isFile() && entry.name.endsWith('.json')) {
-            const hookPath = path.join(hooksDir, entry.name);
+            const hookPath = safeJoin(hooksDir, entry.name);
             const content = await fs.readFile(hookPath, 'utf-8');
             const hookConfig = JSON.parse(content);
 
@@ -92,6 +93,20 @@ export class CursorHooksHandler extends BaseResourceHandler {
   }
 
   /**
+   * Discover hooks from a local directory path
+   */
+  async discoverFromPath(directory: string, options?: DiscoverOptions): Promise<Resource[]> {
+    return this.discover(
+      {
+        type: 'local',
+        url: `file://${directory}`,
+        localPath: directory,
+      },
+      options,
+    );
+  }
+
+  /**
    * Install a hook
    */
   async install(
@@ -111,7 +126,7 @@ export class CursorHooksHandler extends BaseResourceHandler {
 
       // Install each file
       for (const file of resource.files) {
-        const targetPath = path.join(installPath, file.path);
+        const targetPath = safeJoin(installPath, file.path);
 
         if (!options.force) {
           try {
@@ -142,7 +157,7 @@ export class CursorHooksHandler extends BaseResourceHandler {
       const installPath = this.getInstallPath(target.agent, target.scope);
 
       for (const file of resource.files) {
-        const targetPath = path.join(installPath, file.path);
+        const targetPath = safeJoin(installPath, file.path);
 
         try {
           await fs.unlink(targetPath);
@@ -172,7 +187,7 @@ export class CursorHooksHandler extends BaseResourceHandler {
 
         for (const entry of entries) {
           if (entry.isFile() && entry.name.endsWith('.json')) {
-            const hookPath = path.join(installPath, entry.name);
+            const hookPath = safeJoin(installPath, entry.name);
             const content = await fs.readFile(hookPath, 'utf-8');
             const hookConfig = JSON.parse(content);
 

@@ -75,6 +75,25 @@ describe('SubagentsHandler', () => {
       expect(resources[0].metadata.format).toBe('coding-agent-fabric-json');
     });
 
+    it('should discover subagents from local path directly', async () => {
+      // Create test subagent structure
+      const subagentsDir = join(testDir, 'subagents-path');
+      const subagentPath = join(subagentsDir, 'test-agent-path');
+      await mkdir(subagentPath, { recursive: true });
+
+      const subagentConfig = {
+        name: 'test-agent-path',
+        description: 'A test subagent from path',
+      };
+
+      await writeFile(join(subagentPath, 'subagent.json'), JSON.stringify(subagentConfig));
+
+      const resources = await handler.discoverFromPath(subagentsDir);
+
+      expect(resources).toHaveLength(1);
+      expect(resources[0].name).toBe('test-agent-path');
+    });
+
     it('should discover subagents from YAML source', async () => {
       const subagentsDir = join(testDir, 'subagents');
       const subagentPath = join(subagentsDir, 'yaml-agent');

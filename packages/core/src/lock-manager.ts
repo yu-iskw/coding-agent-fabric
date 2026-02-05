@@ -61,7 +61,6 @@ export class LockManager {
       },
       plugins: {},
       resources: {},
-      sources: {},
     };
 
     await this.save(lockFile);
@@ -141,7 +140,7 @@ export class LockManager {
       const historyEntry = {
         version: existing.version,
         updatedAt: existing.updatedAt,
-        sourceUrl: existing.sourceUrl,
+        source: existing.source,
         metadata: this.getEntryMetadata(existing),
       };
 
@@ -183,7 +182,7 @@ export class LockManager {
     const currentHistoryEntry = {
       version: entry.version,
       updatedAt: entry.updatedAt,
-      sourceUrl: entry.sourceUrl,
+      source: entry.source,
       metadata: this.getEntryMetadata(entry),
     };
     newHistory.unshift(currentHistoryEntry);
@@ -191,7 +190,7 @@ export class LockManager {
     const rolledBackEntry: ResourceLockEntry = {
       ...entry,
       version: previous.version,
-      sourceUrl: previous.sourceUrl,
+      source: previous.source,
       updatedAt: getCurrentTimestamp(),
       history: newHistory,
     };
@@ -342,26 +341,6 @@ export class LockManager {
   async getAllPlugins(): Promise<Record<string, PluginLockEntry>> {
     const lockFile = await this.load();
     return lockFile.plugins;
-  }
-
-  /**
-   * Update source metadata
-   */
-  async updateSourceMetadata(source: string, metadata: SourceMetadata): Promise<void> {
-    const lockFile = await this.load();
-    if (!lockFile.sources) {
-      lockFile.sources = {};
-    }
-    lockFile.sources[source] = metadata;
-    await this.save(lockFile);
-  }
-
-  /**
-   * Get source metadata
-   */
-  async getSourceMetadata(source: string): Promise<SourceMetadata | undefined> {
-    const lockFile = await this.load();
-    return lockFile.sources?.[source];
   }
 
   /**

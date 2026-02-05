@@ -76,6 +76,20 @@ This is a test skill.
       expect(resources[0].description).toBe('A test skill');
     });
 
+    it('should discover skills from local path directly', async () => {
+      // Create test skill structure
+      const skillsDir = join(testDir, 'skills-path');
+      const skillPath = join(skillsDir, 'test-skill-path');
+      await mkdir(skillPath, { recursive: true });
+
+      await writeFile(join(skillPath, 'SKILL.md'), '# test-skill-path');
+
+      const resources = await handler.discoverFromPath(skillsDir);
+
+      expect(resources).toHaveLength(1);
+      expect(resources[0].name).toBe('test-skill-path');
+    });
+
     it('should discover nested skills', async () => {
       // Create nested skill structure
       const skillsDir = join(testDir, 'skills');

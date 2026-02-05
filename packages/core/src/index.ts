@@ -8,10 +8,6 @@
 export { LockManager } from './lock-manager.js';
 export type { LockManagerOptions } from './lock-manager.js';
 
-// Export SourceParser
-export { SourceParser } from './source-parser.js';
-export type { DownloadOptions, SourceParseResult } from './source-parser.js';
-
 // Export AgentRegistry
 export { AgentRegistry } from './agent-registry.js';
 
@@ -25,6 +21,10 @@ export type { SubagentsHandlerOptions } from './subagents-handler.js';
 
 // Export PluginManager
 export { PluginManager } from './plugin-manager.js';
+
+// Export SourceParser
+export { SourceParser } from './source-parser.js';
+export type { DownloadOptions, SourceParseResult } from './source-parser.js';
 
 // Re-export common types for convenience
 export type {

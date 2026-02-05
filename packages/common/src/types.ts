@@ -52,6 +52,15 @@ export type NamingStrategy =
 export type UpdateStrategy = 'parallel' | 'sequential';
 
 /**
+ * Source metadata for resources
+ */
+export interface SourceMetadata {
+  downloadedAt: string;
+  size: number;
+  fileCount: number;
+}
+
+/**
  * Parsed source information
  */
 export interface ParsedSource {
@@ -111,7 +120,7 @@ export interface InstallTarget {
  * Installed resource information
  */
 export interface InstalledResource extends Resource {
-  source: string; // Original source (e.g., 'owner/repo', 'npm:package')
+  source: string; // "owner/repo", "npm:package", "local:./path" - pnpm specifier
   sourceType: SourceType;
   sourceUrl: string;
   installedAt: string; // ISO 8601 timestamp
@@ -214,7 +223,7 @@ export interface BaseLockEntry {
   handler: string; // "built-in" or plugin ID (e.g., "@coding-agent-fabric/plugin-claude-code-hooks")
   name: string;
   version?: string;
-  source: string; // "owner/repo", "npm:package", "local:./path"
+  source: string; // "owner/repo", "npm:package", "local:./path" - pnpm specifier
   sourceType: SourceType;
   sourceUrl: string;
   installedAt: string;
@@ -227,7 +236,7 @@ export interface BaseLockEntry {
   history?: {
     version?: string;
     updatedAt: string;
-    sourceUrl: string;
+    source: string;
     metadata?: Record<string, unknown>;
   }[];
 }
@@ -272,14 +281,6 @@ export interface PluginResourceLockEntry extends BaseLockEntry {
 export type ResourceLockEntry = SkillLockEntry | SubagentLockEntry | PluginResourceLockEntry;
 
 /**
- * Source metadata for tracking updates
- */
-export interface SourceMetadata {
-  lastChecked: string; // ISO 8601 timestamp
-  availableUpdates: Record<string, string>; // resource name -> latest version
-}
-
-/**
  * Lock file configuration
  */
 export interface LockFileConfig {
@@ -305,7 +306,4 @@ export interface LockFile {
 
   // Installed resources
   resources: Record<string, ResourceLockEntry>;
-
-  // Source tracking
-  sources?: Record<string, SourceMetadata>;
 }

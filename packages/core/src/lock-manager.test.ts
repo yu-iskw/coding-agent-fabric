@@ -87,8 +87,6 @@ describe('LockManager', () => {
         name: 'test-skill',
         version: '1.0.0',
         source: 'owner/repo',
-        sourceType: 'github',
-        sourceUrl: 'https://github.com/owner/repo',
         installedAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         installedFor: [
@@ -118,8 +116,6 @@ describe('LockManager', () => {
         name: 'test-skill',
         version: '1.0.0',
         source: 'owner/repo',
-        sourceType: 'github',
-        sourceUrl: 'https://github.com/owner/repo',
         installedAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         installedFor: [],
@@ -143,8 +139,6 @@ describe('LockManager', () => {
         name: 'skill-1',
         version: '1.0.0',
         source: 'owner/repo',
-        sourceType: 'github',
-        sourceUrl: 'https://github.com/owner/repo',
         installedAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         installedFor: [],
@@ -160,8 +154,6 @@ describe('LockManager', () => {
         name: 'skill-2',
         version: '1.0.0',
         source: 'owner/repo',
-        sourceType: 'github',
-        sourceUrl: 'https://github.com/owner/repo',
         installedAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         installedFor: [],
@@ -187,8 +179,6 @@ describe('LockManager', () => {
         name: 'test-skill',
         version: '1.0.0',
         source: 'owner/repo',
-        sourceType: 'github',
-        sourceUrl: 'https://github.com/owner/repo',
         installedAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         installedFor: [],
@@ -212,8 +202,6 @@ describe('LockManager', () => {
         name: 'test-skill',
         version: '1.0.0',
         source: 'owner/repo',
-        sourceType: 'github',
-        sourceUrl: 'https://github.com/owner/repo',
         installedAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         installedFor: [
@@ -242,7 +230,7 @@ describe('LockManager', () => {
         handler: 'built-in',
         name: 'test-skill',
         version: '1.0.0',
-        sourceUrl: 'url1',
+        source: 'url1',
         updatedAt: '2026-01-01',
         installedFor: [],
       } as unknown as ResourceLockEntry;
@@ -251,7 +239,7 @@ describe('LockManager', () => {
       const entry2 = {
         ...entry1,
         version: '1.1.0',
-        sourceUrl: 'url2',
+        source: 'url2',
         updatedAt: '2026-02-01',
       } as unknown as ResourceLockEntry;
       await lockManager.addResource(entry2);
@@ -268,7 +256,7 @@ describe('LockManager', () => {
         handler: 'built-in',
         name: 'rollback-skill',
         version: '1.0.0',
-        sourceUrl: 'url1',
+        source: 'url1',
         updatedAt: '2026-01-01',
         installedFor: [],
       } as unknown as ResourceLockEntry;
@@ -277,14 +265,14 @@ describe('LockManager', () => {
       const entry2 = {
         ...entry1,
         version: '1.1.0',
-        sourceUrl: 'url2',
+        source: 'url2',
         updatedAt: '2026-02-01',
       } as unknown as ResourceLockEntry;
       await lockManager.addResource(entry2);
 
       const rolledBack = await lockManager.rollbackResource('rollback-skill');
       expect(rolledBack.version).toBe('1.0.0');
-      expect(rolledBack.sourceUrl).toBe('url1');
+      expect(rolledBack.source).toBe('url1');
       expect(rolledBack.history?.length).toBe(1);
 
       const current = await lockManager.getResource('rollback-skill');
@@ -302,7 +290,7 @@ describe('LockManager', () => {
           name,
           version: `${i}.0.0`,
           updatedAt: `2026-0${i}-01`,
-          sourceUrl: `url${i}`,
+          source: `url${i}`,
           installedFor: [],
         } as unknown as ResourceLockEntry);
       }

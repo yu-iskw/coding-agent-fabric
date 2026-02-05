@@ -183,7 +183,7 @@ export class PluginManager implements PluginRegistry, PluginLoader, PluginDiscov
           const { metadata, handler } = await this.load(pluginPath);
           this.register(metadata, handler);
         } catch (error) {
-          console.error(`Failed to load plugin at ${pluginPath}:`, error);
+          console.error('Failed to load plugin at %s:', pluginPath, error);
         }
       }
     }

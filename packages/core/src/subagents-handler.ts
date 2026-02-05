@@ -26,14 +26,12 @@ import {
 import { ResourceHandler } from '@coding-agent-fabric/plugin-api';
 import { AgentRegistry } from './agent-registry.js';
 import { LockManager } from './lock-manager.js';
-import { SourceParser } from './source-parser.js';
 
 export interface SubagentsHandlerOptions {
   agentRegistry: AgentRegistry;
   lockManager: LockManager;
   projectRoot: string;
   globalRoot?: string;
-  sourceParser?: SourceParser;
 }
 
 /**
@@ -73,28 +71,33 @@ export class SubagentsHandler implements ResourceHandler {
   private lockManager: LockManager;
   private projectRoot: string;
   private globalRoot?: string;
-  private sourceParser: SourceParser;
 
   constructor(options: SubagentsHandlerOptions) {
     this.agentRegistry = options.agentRegistry;
     this.lockManager = options.lockManager;
     this.projectRoot = options.projectRoot;
     this.globalRoot = options.globalRoot;
-    this.sourceParser = options.sourceParser || new SourceParser();
   }
 
   /**
    * Discover subagents from a source
    */
-  async discover(source: ParsedSource, _options?: DiscoverOptions): Promise<Resource[]> {
-    let localPath = source.localPath;
+  async discover(source: ParsedSource, options?: DiscoverOptions): Promise<Resource[]> {
+    const localPath = source.localPath;
 
-    // If local path is not provided, download it first
     if (!localPath) {
-      const result = await this.sourceParser.parse(source.url);
-      localPath = result.localDir;
+      throw new Error(
+        'Local path is required for discovery. Please ensure the resource is installed.',
+      );
     }
 
+    return this.discoverFromPath(localPath, options);
+  }
+
+  /**
+   * Discover subagents from a local directory path
+   */
+  async discoverFromPath(localPath: string, _options?: DiscoverOptions): Promise<Resource[]> {
     const resources: Resource[] = [];
 
     // Find all subagent config files
@@ -175,33 +178,19 @@ export class SubagentsHandler implements ResourceHandler {
    */
   async remove(
     resource: Resource,
-    // Create the target directory for the subagent
-    const subagentInstallDir = join(installPath, resource.name);
-    await mkdir(subagentInstallDir, { recursive: true });
-
-    // Install all files
-    for (const file of resource.files) {
-      const targetFilePath = join(subagentInstallDir, basename(file.path));
-
-      // Special handling for the main config file to allow format conversion
-      if (SUBAGENT_FILE_NAMES.some(name => basename(file.path).startsWith(name.split('.')[0]))) {
-        const targetFormat = this.getTargetFormat(target.agent);
-        const targetFileName = this.getTargetFileName(resource.name, targetFormat);
-        const configTargetPath = join(installPath, targetFileName);
-        const sourceFormat = (resource.metadata.format as string) || 'coding-agent-fabric-json';
-        const configContent = await this.convertFormat(resource, sourceFormat, targetFormat);
-        await writeFile(configTargetPath, configContent, 'utf-8');
-      } else if (file.content !== undefined) {
-        // Copy other files as-is
-        await writeFile(targetFilePath, file.content, { mode: file.mode });
-      }
-    }
-    console.log(`Installed subagent ${resource.name} to ${installPath}`);
+    targets: InstallTarget[],
+    options: RemoveOptions,
+  ): Promise<void> {
+    for (const target of targets) {
+      const installPath = this.getInstallPath(target.agent, target.scope);
       const targetFormat = this.getTargetFormat(target.agent);
       const targetFileName = this.getTargetFileName(resource.name, targetFormat);
       const targetPath = join(installPath, targetFileName);
 
       if (!existsSync(targetPath)) {
+        if (!options.force) {
+          throw new Error(`Subagent ${resource.name} not found at ${targetPath}`);
+        }
         console.warn(`Subagent ${resource.name} not found at ${targetPath}`);
         continue;
       }
