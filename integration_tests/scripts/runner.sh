@@ -117,17 +117,9 @@ caf skills add /tmp/repos/coding-agent-skills --yes --force || { echo -e "${RED}
 echo "Verifying coding-agent-skills installation..."
 caf skills list | grep "claude-code-cli" || { echo -e "${RED}coding-agent-skills verification failed${NC}"; exit 1; }
 
-# 11. Install real skills from microsoft/skills (nested directories under .github/skills)
-echo "Scenario 11: Installing real skills from microsoft/skills..."
-cd /tmp/repos
-git clone --depth 1 https://github.com/microsoft/skills.git microsoft-skills
-
-echo "Adding skills from microsoft/skills..."
-cd /test-workspace
-if [ ! -f "/tmp/repos/microsoft-skills/package.json" ]; then
-    echo '{ "name": "microsoft-skills", "version": "1.0.0" }' > /tmp/repos/microsoft-skills/package.json
-fi
-caf skills add /tmp/repos/microsoft-skills --yes --force || { echo -e "${RED}Failed to add microsoft-skills${NC}"; exit 1; }
+# 11. Install real skills from microsoft/skills via GitHub URL (nested directories under .github/skills)
+echo "Scenario 11: Installing real skills from microsoft/skills via GitHub URL..."
+caf skills add https://github.com/microsoft/skills --yes --force || { echo -e "${RED}Failed to add microsoft/skills via URL${NC}"; exit 1; }
 
 echo "Verifying microsoft-skills installation..."
 caf skills list | grep "azure-cosmos-db-py" || { echo -e "${RED}microsoft-skills verification failed${NC}"; exit 1; }
