@@ -47,7 +47,7 @@ The project is a monorepo managed with pnpm workspaces.
 packages/
   cli            # Command-line interface for coding-agent-fabric
   common         # Shared types, utilities, and constants for coding-agent-fabric
-  core           # Core logic for coding-agent-fabric: AgentRegistry, SkillsHandler, SubagentsHandler
+  core           # Core logic for coding-agent-fabric: AgentRegistry, SkillsHandler, SubagentsHandler, RulesHandler
   plugin-api     # Plugin API and base interfaces for coding-agent-fabric resource handlers
   plugins/
     claude-code-hooks # Plugin for managing Claude Code hooks
@@ -75,6 +75,7 @@ graph TD
         AR["AgentRegistry"]
         SH["SkillsHandler"]
         SAH["SubagentsHandler"]
+        RH_CORE["RulesHandler"]
         PM["PluginManager"]
     end
 
@@ -99,11 +100,13 @@ graph TD
     Cmds --> AR
     Cmds --> SH
     Cmds --> SAH
+    Cmds --> RH_CORE
     Cmds --> PM
 
     %% Core dependencies
     SH --> AR
     SAH --> AR
+    RH_CORE --> AR
     PM --> Reg
 
     %% Plugin relationships
@@ -139,6 +142,7 @@ graph TD
 - **lint:trunk**: `trunk check -y`
 - **lint:trunk-all**: `trunk check --all -y`
 - **test**: `vitest run`
+- **test:integration**: `make -C integration_tests test`
 
 <!-- /SYNC:SCRIPTS -->
 

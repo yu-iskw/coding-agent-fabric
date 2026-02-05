@@ -19,17 +19,19 @@ The fabric automatically detects and manages resources for:
 
 <!-- SYNC:COMMANDS -->
 
-### plugin
+### rules
 
-Manage coding-agent-fabric plugins
+Manage AI agent rules
 
 ```bash
-# Install a third-party plugin
-coding-agent-fabric plugin add
-# List installed plugins
-coding-agent-fabric plugin list
-# Remove a plugin
-coding-agent-fabric plugin remove
+# Install rules from a source
+caf rules add
+# List installed rules
+caf rules list
+# Remove a rule
+caf rules remove
+# Update all rules
+caf rules update
 ```
 
 ### skills
@@ -38,13 +40,13 @@ Manage AI agent skills
 
 ```bash
 # Install skills from a source
-coding-agent-fabric skills add
+caf skills add
 # List installed skills
-coding-agent-fabric skills list
+caf skills list
 # Remove a skill
-coding-agent-fabric skills remove
+caf skills remove
 # Update all skills
-coding-agent-fabric skills update
+caf skills update
 ```
 
 ### subagents
@@ -53,13 +55,26 @@ Manage AI subagents
 
 ```bash
 # Install subagents from a source
-coding-agent-fabric subagents add
+caf subagents add
 # List installed subagents
-coding-agent-fabric subagents list
+caf subagents list
 # Remove a subagent
-coding-agent-fabric subagents remove
+caf subagents remove
 # Update all subagents
-coding-agent-fabric subagents update
+caf subagents update
+```
+
+### plugin
+
+Manage coding-agent-fabric plugins
+
+```bash
+# Install a third-party plugin
+caf plugin add
+# List installed plugins
+caf plugin list
+# Remove a plugin
+caf plugin remove
 ```
 
 ### system
@@ -68,11 +83,11 @@ System management commands
 
 ```bash
 # Check the health of your installation
-coding-agent-fabric doctor
+caf doctor
 # Check for updates across all resources
-coding-agent-fabric check
+caf check
 # Update all resources to their latest versions
-coding-agent-fabric update
+caf update
 ```
 
 <!-- /SYNC:COMMANDS -->
