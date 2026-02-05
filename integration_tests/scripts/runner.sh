@@ -50,13 +50,18 @@ show_structure() {
       return 0
     fi
     if command -v tree &> /dev/null; then
-      tree -L 3 -a "$dir" 2>/dev/null || ls -la "$dir"
+      if ! tree -L 3 -a "$dir" 2>/dev/null; then
+        ls -la "$dir" 2>/dev/null || echo "Failed to list directory: $dir"
+      fi
     else
       debug_log "tree command not available, using ls instead"
-      ls -laR "$dir" 2>/dev/null | head -50 || echo "Failed to list directory"
+      if ! ls -laR "$dir" 2>/dev/null | head -50; then
+        echo "Failed to list directory: $dir"
+      fi
     fi
     echo ""
   fi
+  return 0
 }
 
 echo -e "${GREEN}Starting integration tests with real skills...${NC}"
@@ -70,10 +75,26 @@ if [ "$VERBOSE" = true ]; then
   debug_log "PATH: $PATH"
 
   echo -e "${BLUE}[DEBUG]${NC} Available commands:"
-  command -v tree &> /dev/null && echo "  ✓ tree" || echo "  ✗ tree (will use ls instead)"
-  command -v git &> /dev/null && echo "  ✓ git" || echo "  ✗ git"
-  command -v pnpm &> /dev/null && echo "  ✓ pnpm" || echo "  ✗ pnpm"
-  command -v caf &> /dev/null && echo "  ✓ caf" || echo "  ✗ caf"
+  if command -v tree &> /dev/null; then
+    echo "  ✓ tree"
+  else
+    echo "  ✗ tree (will use ls instead)"
+  fi
+  if command -v git &> /dev/null; then
+    echo "  ✓ git"
+  else
+    echo "  ✗ git"
+  fi
+  if command -v pnpm &> /dev/null; then
+    echo "  ✓ pnpm"
+  else
+    echo "  ✗ pnpm"
+  fi
+  if command -v caf &> /dev/null; then
+    echo "  ✓ caf"
+  else
+    echo "  ✗ caf"
+  fi
 
   debug_log "CAF version: $(caf --version 2>&1 || echo 'not available')"
   echo ""
