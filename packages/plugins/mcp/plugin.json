@@ -1,0 +1,12 @@
+{
+  "id": "@coding-agent-fabric/plugin-mcp",
+  "name": "@coding-agent-fabric/plugin-mcp",
+  "version": "0.1.0",
+  "description": "Plugin for managing Model Context Protocol (MCP) servers",
+  "author": "coding-agent-fabric",
+  "resourceType": "mcp",
+  "supportedAgents": ["claude-code", "cursor", "codex"],
+  "entry": "dist/index.js",
+  "license": "MIT",
+  "keywords": ["mcp", "model-context-protocol", "servers"]
+}

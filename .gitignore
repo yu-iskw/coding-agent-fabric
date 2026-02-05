@@ -147,3 +147,6 @@ TODO.md
 .claude/sessions/
 
 *.bak
+
+# test
+.coding-agent-fabric/

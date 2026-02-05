@@ -1,14 +1,19 @@
 {
-  "name": "typescript-template",
-  "version": "1.0.0",
+  "name": "coding-agent-fabric",
+  "version": "0.1.0",
   "private": true,
-  "description": "",
-  "keywords": [],
+  "description": "Universal resource manager for AI coding agents.",
+  "keywords": [
+    "ai",
+    "coding-agents",
+    "skills",
+    "plugins"
+  ],
   "license": "Apache-2.0",
-  "author": "",
   "main": "index.js",
   "scripts": {
     "build": "pnpm --recursive build",
+    "clean": "find packages -type d -name dist -prune -exec rm -rf {} +",
     "format": "pnpm format:trunk",
     "format:all": "pnpm format:trunk-all",
     "format:eslint": "eslint . --fix",
@@ -25,6 +30,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",
+    "@types/node": "^24.3.0",
     "eslint": "^9.39.2",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.5",

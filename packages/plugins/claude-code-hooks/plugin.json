@@ -1,0 +1,12 @@
+{
+  "id": "@coding-agent-fabric/plugin-claude-code-hooks",
+  "name": "@coding-agent-fabric/plugin-claude-code-hooks",
+  "version": "0.1.0",
+  "description": "Plugin for managing Claude Code hooks (PreToolUse, PostToolUse)",
+  "author": "coding-agent-fabric",
+  "resourceType": "claude-code-hooks",
+  "supportedAgents": ["claude-code"],
+  "entry": "dist/index.js",
+  "license": "MIT",
+  "keywords": ["claude-code", "hooks", "automation"]
+}
