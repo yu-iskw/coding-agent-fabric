@@ -58,6 +58,7 @@ export function createSubagentsCommand(): Command {
     .description('Remove a subagent')
     .argument('<name>', 'Name of the subagent to remove')
     .option('-g, --global', 'Remove from global scope')
+    .option('-f, --force', 'Force removal even if not found')
     .option('-y, --yes', 'Skip confirmation prompts')
     .option('--agent <agent>', 'Target specific agent')
     .action(async (name: string, options: RemoveOptions) => {

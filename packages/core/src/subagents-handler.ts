@@ -188,17 +188,27 @@ export class SubagentsHandler implements ResourceHandler {
       const targetFileName = this.getTargetFileName(resource.name, targetFormat);
       const targetPath = join(installPath, targetFileName);
 
-      if (!existsSync(targetPath)) {
-        if (!options.force) {
-          throw new Error(`Subagent ${resource.name} not found at ${targetPath}`);
+      // Also check for other common extensions to be safe
+      const baseName = sanitizeFileName(resource.name);
+      const possiblePaths = [
+        targetPath,
+        join(installPath, `${baseName}.json`),
+        join(installPath, `${baseName}.yaml`),
+        join(installPath, `${baseName}.yml`),
+      ];
+
+      let removed = false;
+      for (const p of possiblePaths) {
+        if (existsSync(p)) {
+          await unlink(p);
+          console.log('Removed subagent %s from %s', resource.name, p);
+          removed = true;
         }
-        console.warn('Subagent %s not found at %s', resource.name, targetPath);
-        continue;
       }
 
-      // Remove the subagent file
-      await unlink(targetPath);
-      console.log('Removed subagent %s from %s', resource.name, targetPath);
+      if (!removed) {
+        console.warn('Subagent %s not found at %s', resource.name, targetPath);
+      }
     }
   }
 
@@ -210,11 +220,14 @@ export class SubagentsHandler implements ResourceHandler {
     const agents = this.getSupportedAgents();
     const scopes: Scope[] = scope === 'both' ? ['project', 'global'] : [scope];
 
+    const scannedPaths = new Set<string>();
+
     for (const agent of agents) {
       for (const s of scopes) {
         try {
           const installPath = this.getInstallPath(agent, s);
-          if (!existsSync(installPath)) continue;
+          if (!existsSync(installPath) || scannedPaths.has(installPath)) continue;
+          scannedPaths.add(installPath);
 
           const entries = await readdir(installPath, { withFileTypes: true });
           for (const entry of entries) {
@@ -254,11 +267,16 @@ export class SubagentsHandler implements ResourceHandler {
                     resourcesMap.set(resourceName, resource);
                   }
 
-                  resource.installedFor.push({
-                    agent,
-                    scope: s,
-                    path: configPath,
-                  });
+                  const existingInstall = resource.installedFor.find(
+                    (i) => i.agent === agent && i.scope === s && i.path === configPath,
+                  );
+                  if (!existingInstall) {
+                    resource.installedFor.push({
+                      agent,
+                      scope: s,
+                      path: configPath,
+                    });
+                  }
                 } catch (_e) {
                   // Skip invalid configs
                   continue;

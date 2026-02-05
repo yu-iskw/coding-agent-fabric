@@ -117,4 +117,125 @@ caf skills add /tmp/repos/coding-agent-skills --yes --force || { echo -e "${RED}
 echo "Verifying coding-agent-skills installation..."
 caf skills list | grep "claude-code-cli" || { echo -e "${RED}coding-agent-skills verification failed${NC}"; exit 1; }
 
+# 11. Remove a skill
+echo "Scenario 11: Removing a skill..."
+# Create a dedicated mock skill for removal to avoid issues with duplicates from other scenarios
+mkdir -p /tmp/removal-skill
+cat > /tmp/removal-skill/package.json <<EOF
+{
+  "name": "removal-skill",
+  "version": "1.0.0"
+}
+EOF
+cat > /tmp/removal-skill/SKILL.md <<EOF
+# removal-skill
+To be removed.
+EOF
+cd /test-workspace
+caf skills add /tmp/removal-skill --yes --force || { echo -e "${RED}Failed to add removal skill${NC}"; exit 1; }
+caf skills list | grep "removal-skill" || { echo -e "${RED}Removal skill installation failed${NC}"; exit 1; }
+
+caf skills remove removal-skill --yes --force || { echo -e "${RED}Failed to remove skill${NC}"; exit 1; }
+if caf skills list | grep -q "removal-skill"; then
+    echo -e "${RED}Skill removal verification failed: removal-skill still present${NC}"
+    exit 1
+fi
+
+# 12. Remove a subagent
+echo "Scenario 12: Removing a subagent..."
+# Create a dedicated mock subagent for removal
+mkdir -p /tmp/removal-subagent
+cat > /tmp/removal-subagent/package.json <<EOF
+{
+  "name": "removal-subagent-pkg",
+  "version": "1.0.0"
+}
+EOF
+cat > /tmp/removal-subagent/subagent.json <<EOF
+{
+  "name": "removal-subagent",
+  "description": "To be removed."
+}
+EOF
+caf subagents add /tmp/removal-subagent --yes --force || { echo -e "${RED}Failed to add removal subagent${NC}"; exit 1; }
+caf subagents list | grep "removal-subagent" || { echo -e "${RED}Removal subagent installation failed${NC}"; exit 1; }
+
+caf subagents remove removal-subagent --yes --force || { echo -e "${RED}Failed to remove subagent${NC}"; exit 1; }
+if caf subagents list | grep -q "removal-subagent"; then
+    echo -e "${RED}Subagent removal verification failed: removal-subagent still present${NC}"
+    echo "Current subagents list:"
+    caf subagents list
+    exit 1
+fi
+
+# 13. Update/Sync Skill (Local mock)
+echo "Scenario 13: Updating/Syncing a skill..."
+mkdir -p /tmp/mock-skill
+cat > /tmp/mock-skill/package.json <<EOF
+{
+  "name": "mock-skill",
+  "version": "1.0.0"
+}
+EOF
+cat > /tmp/mock-skill/SKILL.md <<EOF
+# mock-skill
+Description v1
+EOF
+cd /test-workspace
+caf skills add /tmp/mock-skill --yes --force || { echo -e "${RED}Failed to add mock skill${NC}"; exit 1; }
+caf skills list | grep "mock-skill" || { echo -e "${RED}Mock skill installation failed${NC}"; exit 1; }
+
+# Modify source
+cat > /tmp/mock-skill/SKILL.md <<EOF
+# mock-skill
+Description v2
+EOF
+# Re-add with force to sync
+caf skills add /tmp/mock-skill --yes --force || { echo -e "${RED}Failed to update mock skill${NC}"; exit 1; }
+caf skills list | grep "mock-skill" || { echo -e "${RED}Mock skill update verification failed${NC}"; exit 1; }
+
+# 14. Update/Sync Subagent (Local mock)
+echo "Scenario 14: Updating/Syncing a subagent..."
+mkdir -p /tmp/mock-subagent
+cat > /tmp/mock-subagent/package.json <<EOF
+{
+  "name": "mock-subagent-pkg",
+  "version": "1.0.0"
+}
+EOF
+cat > /tmp/mock-subagent/subagent.json <<EOF
+{
+  "name": "mock-subagent",
+  "description": "Mock description v1"
+}
+EOF
+caf subagents add /tmp/mock-subagent --yes --force || { echo -e "${RED}Failed to add mock subagent${NC}"; exit 1; }
+caf subagents list | grep "mock-subagent" || { echo -e "${RED}Mock subagent installation failed${NC}"; exit 1; }
+
+# Modify source
+cat > /tmp/mock-subagent/subagent.json <<EOF
+{
+  "name": "mock-subagent",
+  "description": "Mock description v2"
+}
+EOF
+# Re-add with force to sync
+caf subagents add /tmp/mock-subagent --yes --force || { echo -e "${RED}Failed to update mock subagent${NC}"; exit 1; }
+caf subagents list | grep "mock-subagent" || { echo -e "${RED}Mock subagent update verification failed${NC}"; exit 1; }
+
+# 15. Install via GitHub Shorthand
+echo "Scenario 15: Installing via GitHub Shorthand (anthropics/skills)..."
+# Note: This might fail if the repo lacks a package.json, which exposes a need for better handling
+caf skills add anthropics/skills --yes --force || echo -e "${RED}Note: Installation from shorthand failed as expected or due to missing package.json${NC}"
+
+# 16. Install via GitHub URL
+echo "Scenario 16: Installing via GitHub URL (vercel-labs/agent-skills)..."
+caf skills add https://github.com/vercel-labs/agent-skills --yes --force || echo -e "${RED}Note: Installation from URL failed as expected or due to missing package.json${NC}"
+
+# 17. Verify name inference (Scenario 17 logic)
+echo "Scenario 17: Verifying name inference..."
+# This is implicitly tested by Scenario 15/16 if they succeed, 
+# but we can verify it by checking if the package was added to devDependencies with the correct name
+grep -q "\"agent-skills\":" /test-workspace/package.json || grep -q "\"skills\":" /test-workspace/package.json || { echo -e "${RED}Remote package not found in package.json${NC}"; exit 1; }
+
 echo -e "${GREEN}Integration tests with real skills passed!${NC}"

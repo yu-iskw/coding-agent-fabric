@@ -209,11 +209,14 @@ export class SkillsHandler implements ResourceHandler {
     const agents = this.getSupportedAgents();
     const scopes: Scope[] = scope === 'both' ? ['project', 'global'] : [scope];
 
+    const scannedPaths = new Set<string>();
+
     for (const agent of agents) {
       for (const s of scopes) {
         try {
           const installPath = this.getInstallPath(agent, s);
-          if (!existsSync(installPath)) continue;
+          if (!existsSync(installPath) || scannedPaths.has(installPath)) continue;
+          scannedPaths.add(installPath);
 
           const entries = await readdir(installPath, { withFileTypes: true });
           for (const entry of entries) {
@@ -271,11 +274,16 @@ export class SkillsHandler implements ResourceHandler {
                   resourcesMap.set(resourceName, resource);
                 }
 
-                resource.installedFor.push({
-                  agent,
-                  scope: s,
-                  path: skillDir,
-                });
+                const existingInstall = resource.installedFor.find(
+                  (i) => i.agent === agent && i.scope === s && i.path === skillDir,
+                );
+                if (!existingInstall) {
+                  resource.installedFor.push({
+                    agent,
+                    scope: s,
+                    path: skillDir,
+                  });
+                }
               }
             }
           }

@@ -65,6 +65,7 @@ export function createSkillsCommand(): Command {
     .description('Remove a skill')
     .argument('<name>', 'Name of the skill to remove')
     .option('-g, --global', 'Remove from global scope')
+    .option('-f, --force', 'Force removal even if not found')
     .option('-y, --yes', 'Skip confirmation prompts')
     .option('--agent <agent>', 'Target specific agent')
     .action(async (name: string, options: RemoveOptions) => {
