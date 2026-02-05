@@ -9,17 +9,11 @@ import {
   SourceParser,
   SubagentsHandler,
 } from '@coding-agent-fabric/core';
-import { parseSource } from '@coding-agent-fabric/common';
+import { parseSource, type AgentType, type Scope } from '@coding-agent-fabric/common';
 import type { AddOptions, ListOptions, RemoveOptions, UpdateOptions } from '../types/index.js';
 import { logger } from '../utils/logger.js';
 import { spinner } from '../utils/spinner.js';
-import {
-  confirmAction,
-  selectAgents,
-  selectScope,
-  selectMode,
-  selectResources,
-} from '../utils/prompts.js';
+import { confirmAction, selectAgents, selectScope, selectResources } from '../utils/prompts.js';
 import { join } from 'node:path';
 import { cwd } from 'node:process';
 
@@ -212,7 +206,7 @@ async function addSubagents(source: string, options: AddOptions): Promise<void> 
         path: subagentsHandler.getInstallPath(t.agent, t.scope),
       })),
       model: resource.metadata.model as string,
-      format: resource.metadata.format as any,
+      format: resource.metadata.format as 'claude-code-yaml' | 'coding-agent-fabric-json',
       configHash: resource.metadata.configHash as string,
     });
 
@@ -286,10 +280,10 @@ async function removeSubagent(name: string, options: RemoveOptions): Promise<voi
   // Remove from targets
   const scope: 'global' | 'project' | 'both' = options.global ? 'global' : options.scope || 'both';
   const targets = resourceEntry.installedFor
-    .filter((install: any) => scope === 'both' || install.scope === scope)
-    .map((install: any) => ({
-      agent: install.agent,
-      scope: install.scope,
+    .filter((install: { scope: string }) => scope === 'both' || install.scope === scope)
+    .map((install: { agent: string; scope: string }) => ({
+      agent: install.agent as AgentType,
+      scope: install.scope as Scope,
       mode: 'copy' as const,
     }));
 
@@ -317,7 +311,7 @@ async function removeSubagent(name: string, options: RemoveOptions): Promise<voi
 /**
  * Update all subagents
  */
-async function updateSubagents(options: UpdateOptions): Promise<void> {
+async function updateSubagents(_options: UpdateOptions): Promise<void> {
   logger.info('Update functionality not yet implemented');
   // TODO: Implement update logic
 }

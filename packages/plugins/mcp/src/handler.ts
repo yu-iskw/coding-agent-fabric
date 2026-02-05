@@ -68,7 +68,7 @@ export class MCPHandler extends BaseResourceHandler {
   /**
    * Discover MCP servers from a source
    */
-  async discover(source: ParsedSource, options?: DiscoverOptions): Promise<Resource[]> {
+  async discover(source: ParsedSource, _options?: DiscoverOptions): Promise<Resource[]> {
     const resources: Resource[] = [];
 
     // Handle local path discovery
@@ -156,7 +156,7 @@ export class MCPHandler extends BaseResourceHandler {
 
       // Merge new server configuration
       const metadata = resource.metadata as unknown as MCPServerMetadata;
-      const serverConfig: any = {};
+      const serverConfig: Record<string, unknown> = {};
 
       if (metadata.command) {
         serverConfig.command = metadata.command;
@@ -370,7 +370,7 @@ export class MCPHandler extends BaseResourceHandler {
       throw new Error(`Unsupported agent: ${agent}`);
     }
 
-    const configFileName = agent === 'claude-code' ? 'settings.json' : 'mcp.json';
+    const _configFileName = agent === 'claude-code' ? 'settings.json' : 'mcp.json';
 
     if (scope === 'global') {
       switch (agent) {

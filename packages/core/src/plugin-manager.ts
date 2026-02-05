@@ -4,7 +4,7 @@
 
 import { readdir, readFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
-import { join, resolve, isAbsolute } from 'node:path';
+import { join, resolve, dirname } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import {
   PluginManifest,
@@ -140,7 +140,7 @@ export class PluginManager implements PluginRegistry, PluginLoader, PluginDiscov
     return errors;
   }
 
-  isCompatible(manifest: PluginManifest, currentVersion: string): boolean {
+  isCompatible(_manifest: PluginManifest, _currentVersion: string): boolean {
     // Simple version check for now
     return true;
   }
@@ -188,8 +188,4 @@ export class PluginManager implements PluginRegistry, PluginLoader, PluginDiscov
       }
     }
   }
-}
-
-function dirname(path: string): string {
-  return path.split('/').slice(0, -1).join('/');
 }

@@ -46,7 +46,7 @@ export class CursorHooksHandler extends BaseResourceHandler {
   /**
    * Discover hooks from a source
    */
-  async discover(source: ParsedSource, options?: DiscoverOptions): Promise<Resource[]> {
+  async discover(source: ParsedSource, _options?: DiscoverOptions): Promise<Resource[]> {
     const resources: Resource[] = [];
 
     // Handle local path discovery
@@ -282,7 +282,7 @@ export class CursorHooksHandler extends BaseResourceHandler {
   /**
    * Check if a configuration is a valid Cursor hook
    */
-  private isValidHookConfig(config: any): boolean {
+  private isValidHookConfig(config: Record<string, unknown>): boolean {
     return (
       config &&
       typeof config === 'object' &&

@@ -8,7 +8,7 @@ import { rm, mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { LockManager } from './lock-manager.js';
-import type { SkillLockEntry } from '@coding-agent-fabric/common';
+import type { SkillLockEntry, ResourceLockEntry } from '@coding-agent-fabric/common';
 
 describe('LockManager', () => {
   let testDir: string;
@@ -237,7 +237,7 @@ describe('LockManager', () => {
     });
 
     it('should track history when updating a resource', async () => {
-      const entry1: any = {
+      const entry1 = {
         type: 'skills',
         handler: 'built-in',
         name: 'test-skill',
@@ -245,15 +245,15 @@ describe('LockManager', () => {
         sourceUrl: 'url1',
         updatedAt: '2026-01-01',
         installedFor: [],
-      };
+      } as unknown as ResourceLockEntry;
       await lockManager.addResource(entry1);
 
-      const entry2: any = {
+      const entry2 = {
         ...entry1,
         version: '1.1.0',
         sourceUrl: 'url2',
         updatedAt: '2026-02-01',
-      };
+      } as unknown as ResourceLockEntry;
       await lockManager.addResource(entry2);
 
       const resource = await lockManager.getResource('test-skill');
@@ -263,7 +263,7 @@ describe('LockManager', () => {
     });
 
     it('should rollback to previous version', async () => {
-      const entry1: any = {
+      const entry1 = {
         type: 'skills',
         handler: 'built-in',
         name: 'rollback-skill',
@@ -271,15 +271,15 @@ describe('LockManager', () => {
         sourceUrl: 'url1',
         updatedAt: '2026-01-01',
         installedFor: [],
-      };
+      } as unknown as ResourceLockEntry;
       await lockManager.addResource(entry1);
 
-      const entry2: any = {
+      const entry2 = {
         ...entry1,
         version: '1.1.0',
         sourceUrl: 'url2',
         updatedAt: '2026-02-01',
-      };
+      } as unknown as ResourceLockEntry;
       await lockManager.addResource(entry2);
 
       const rolledBack = await lockManager.rollbackResource('rollback-skill');
@@ -304,7 +304,7 @@ describe('LockManager', () => {
           updatedAt: `2026-0${i}-01`,
           sourceUrl: `url${i}`,
           installedFor: [],
-        } as any);
+        } as unknown as ResourceLockEntry);
       }
 
       const resource = await lockManager.getResource(name);

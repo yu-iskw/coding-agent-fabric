@@ -184,7 +184,7 @@ export class AgentRegistry {
         if (isInstalled) {
           installed.push(name);
         }
-      } catch (error) {
+      } catch (_error) {
         // Ignore detection errors
         continue;
       }

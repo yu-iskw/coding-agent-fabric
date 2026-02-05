@@ -9,7 +9,6 @@ import { createSkillsCommand } from './commands/skills.js';
 import { createSubagentsCommand } from './commands/subagents.js';
 import { createPluginCommand } from './commands/plugin.js';
 import { registerSystemCommands } from './commands/system.js';
-import { logger } from './utils/logger.js';
 
 const program = new Command();
 

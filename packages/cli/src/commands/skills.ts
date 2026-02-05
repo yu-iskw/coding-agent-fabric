@@ -4,7 +4,12 @@
 
 import { Command } from 'commander';
 import { AgentRegistry, LockManager, SourceParser, SkillsHandler } from '@coding-agent-fabric/core';
-import { parseSource } from '@coding-agent-fabric/common';
+import {
+  parseSource,
+  type NamingStrategy,
+  type AgentType,
+  type Scope,
+} from '@coding-agent-fabric/common';
 import type { AddOptions, ListOptions, RemoveOptions, UpdateOptions } from '../types/index.js';
 import { logger } from '../utils/logger.js';
 import { spinner } from '../utils/spinner.js';
@@ -130,7 +135,7 @@ async function addSkills(source: string, options: AddOptions): Promise<void> {
   const resources = await skillsHandler.discover(
     { ...parsedSource, localPath: downloadedPath },
     {
-      namingStrategy: options.namingStrategy as any,
+      namingStrategy: options.namingStrategy as NamingStrategy,
       categories: options.categories,
     },
   );
@@ -219,7 +224,7 @@ async function addSkills(source: string, options: AddOptions): Promise<void> {
       installedName: resource.name,
       sourcePath: (resource.metadata.sourcePath as string) || '',
       categories: (resource.metadata.categories as string[]) || [],
-      namingStrategy: options.namingStrategy as any,
+      namingStrategy: options.namingStrategy as NamingStrategy,
     });
 
     spinner.succeed(`Installed ${resource.name}`);
@@ -292,10 +297,10 @@ async function removeSkill(name: string, options: RemoveOptions): Promise<void> 
   // Remove from targets
   const scope: 'global' | 'project' | 'both' = options.global ? 'global' : options.scope || 'both';
   const targets = resourceEntry.installedFor
-    .filter((install: any) => scope === 'both' || install.scope === scope)
-    .map((install: any) => ({
-      agent: install.agent,
-      scope: install.scope,
+    .filter((install: { scope: string }) => scope === 'both' || install.scope === scope)
+    .map((install: { agent: string; scope: string }) => ({
+      agent: install.agent as AgentType,
+      scope: install.scope as Scope,
       mode: 'copy' as const,
     }));
 
@@ -323,7 +328,7 @@ async function removeSkill(name: string, options: RemoveOptions): Promise<void> 
 /**
  * Update all skills
  */
-async function updateSkills(options: UpdateOptions): Promise<void> {
+async function updateSkills(_options: UpdateOptions): Promise<void> {
   logger.info('Update functionality not yet implemented');
   // TODO: Implement update logic
 }

@@ -206,7 +206,7 @@ instructions: YAML instructions
 
     it('should throw for unknown agent', () => {
       expect(() => {
-        handler.getInstallPath('unknown-agent' as any, 'project');
+        handler.getInstallPath('unknown-agent' as string, 'project');
       }).toThrow('Agent unknown-agent not found');
     });
 

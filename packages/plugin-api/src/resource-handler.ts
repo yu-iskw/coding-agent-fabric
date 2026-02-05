@@ -178,7 +178,7 @@ export abstract class BaseResourceHandler implements ResourceHandler {
     }));
   }
 
-  async update(resource: InstalledResource, target?: string): Promise<void> {
+  async update(_resource: InstalledResource, _target?: string): Promise<void> {
     throw new Error(`Update not implemented for ${this.type}`);
   }
 }

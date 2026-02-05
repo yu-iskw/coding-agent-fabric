@@ -9,7 +9,7 @@ import { tmpdir } from 'node:os';
 import { SkillsHandler } from './skills-handler.js';
 import { AgentRegistry } from './agent-registry.js';
 import { LockManager } from './lock-manager.js';
-import type { ParsedSource, Resource, InstallTarget } from '@coding-agent-fabric/common';
+import type { ParsedSource, Resource } from '@coding-agent-fabric/common';
 
 describe('SkillsHandler', () => {
   let handler: SkillsHandler;
@@ -232,7 +232,7 @@ Content here.
 
     it('should throw for unknown agent', () => {
       expect(() => {
-        handler.getInstallPath('unknown-agent' as any, 'project');
+        handler.getInstallPath('unknown-agent' as string, 'project');
       }).toThrow('Agent unknown-agent not found');
     });
   });

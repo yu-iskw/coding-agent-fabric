@@ -2,19 +2,9 @@
  * SkillsHandler - Manages skills resources
  */
 
-import {
-  readFile,
-  writeFile,
-  mkdir,
-  readdir,
-  stat,
-  cp,
-  symlink,
-  unlink,
-  rm,
-} from 'node:fs/promises';
+import { readFile, writeFile, mkdir, readdir, stat, symlink, rm } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
-import { join, basename, dirname, relative } from 'node:path';
+import { join, basename, dirname, relative, sep } from 'node:path';
 import type {
   AgentType,
   Resource,
@@ -32,11 +22,8 @@ import type {
 import {
   SKILL_FILE_NAME,
   EXCLUDE_PATTERNS,
-  extractCategories,
   generateSmartName,
   sanitizeFileName,
-  isPathInside,
-  getCurrentTimestamp,
 } from '@coding-agent-fabric/common';
 import { ResourceHandler } from '@coding-agent-fabric/plugin-api';
 import { AgentRegistry } from './agent-registry.js';
@@ -101,7 +88,7 @@ export class SkillsHandler implements ResourceHandler {
 
       // Extract categories from path
       const relativePath = relative(localPath, skillDir);
-      const pathParts = relativePath.split('/').filter(Boolean);
+      const pathParts = relativePath.split(sep).filter(Boolean);
       // Remove the last part (skill directory name) to get categories
       const categories =
         options?.categories || (pathParts.length > 1 ? pathParts.slice(0, -1) : []);
@@ -151,10 +138,6 @@ export class SkillsHandler implements ResourceHandler {
     for (const target of targets) {
       const installPath = this.getInstallPath(target.agent, target.scope);
 
-      if (!installPath) {
-        throw new Error(`Agent ${target.agent} does not support skills`);
-      }
-
       // Ensure install directory exists
       await mkdir(installPath, { recursive: true });
 
@@ -200,15 +183,10 @@ export class SkillsHandler implements ResourceHandler {
   async remove(
     resource: Resource,
     targets: InstallTarget[],
-    options: RemoveOptions,
+    _options: RemoveOptions,
   ): Promise<void> {
     for (const target of targets) {
       const installPath = this.getInstallPath(target.agent, target.scope);
-
-      if (!installPath) {
-        console.warn(`Agent ${target.agent} does not support skills`);
-        continue;
-      }
 
       const targetPath = join(installPath, resource.name);
 
@@ -231,7 +209,7 @@ export class SkillsHandler implements ResourceHandler {
     const resources: InstalledResource[] = [];
 
     // Filter resources by type and scope
-    for (const [name, entry] of Object.entries(lockFile.resources)) {
+    for (const entry of Object.values(lockFile.resources)) {
       if (entry.type !== 'skills') continue;
 
       // Check scope
@@ -312,7 +290,7 @@ export class SkillsHandler implements ResourceHandler {
     if (scope === 'global' && config.globalSkillsDir) {
       return config.globalSkillsDir;
     } else if (scope === 'project') {
-      return join(this.projectRoot, config.skillsDir);
+      return config.skillsDir;
     } else {
       throw new Error(`Invalid scope: ${scope}`);
     }

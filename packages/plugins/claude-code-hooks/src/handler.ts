@@ -46,7 +46,7 @@ export class ClaudeCodeHooksHandler extends BaseResourceHandler {
   /**
    * Discover hooks from a source
    */
-  async discover(source: ParsedSource, options?: DiscoverOptions): Promise<Resource[]> {
+  async discover(source: ParsedSource, _options?: DiscoverOptions): Promise<Resource[]> {
     const resources: Resource[] = [];
 
     // Handle local path discovery
@@ -284,7 +284,7 @@ export class ClaudeCodeHooksHandler extends BaseResourceHandler {
   /**
    * Check if a configuration is a valid Claude Code hook
    */
-  private isValidHookConfig(config: any): boolean {
+  private isValidHookConfig(config: Record<string, unknown>): boolean {
     return (
       config &&
       typeof config === 'object' &&

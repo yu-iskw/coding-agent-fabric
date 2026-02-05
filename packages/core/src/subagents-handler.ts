@@ -2,17 +2,7 @@
  * SubagentsHandler - Manages subagent resources
  */
 
-import {
-  readFile,
-  writeFile,
-  mkdir,
-  readdir,
-  stat,
-  cp,
-  symlink,
-  unlink,
-  rm,
-} from 'node:fs/promises';
+import { readFile, writeFile, mkdir, readdir, stat, unlink } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join, basename, dirname, extname } from 'node:path';
 import type {
@@ -28,11 +18,7 @@ import type {
   Scope,
   ResourceFile,
 } from '@coding-agent-fabric/common';
-import {
-  SUBAGENT_FILE_NAMES,
-  EXCLUDE_PATTERNS,
-  getCurrentTimestamp,
-} from '@coding-agent-fabric/common';
+import { SUBAGENT_FILE_NAMES, EXCLUDE_PATTERNS } from '@coding-agent-fabric/common';
 import { ResourceHandler } from '@coding-agent-fabric/plugin-api';
 import { AgentRegistry } from './agent-registry.js';
 import { LockManager } from './lock-manager.js';
@@ -96,7 +82,7 @@ export class SubagentsHandler implements ResourceHandler {
   /**
    * Discover subagents from a source
    */
-  async discover(source: ParsedSource, options?: DiscoverOptions): Promise<Resource[]> {
+  async discover(source: ParsedSource, _options?: DiscoverOptions): Promise<Resource[]> {
     let localPath = source.localPath;
 
     // If not a local source, download it first
@@ -158,10 +144,6 @@ export class SubagentsHandler implements ResourceHandler {
     for (const target of targets) {
       const installPath = this.getInstallPath(target.agent, target.scope);
 
-      if (!installPath) {
-        throw new Error(`Agent ${target.agent} does not support subagents`);
-      }
-
       // Ensure install directory exists
       await mkdir(installPath, { recursive: true });
 
@@ -190,15 +172,10 @@ export class SubagentsHandler implements ResourceHandler {
   async remove(
     resource: Resource,
     targets: InstallTarget[],
-    options: RemoveOptions,
+    _options: RemoveOptions,
   ): Promise<void> {
     for (const target of targets) {
       const installPath = this.getInstallPath(target.agent, target.scope);
-
-      if (!installPath) {
-        console.warn(`Agent ${target.agent} does not support subagents`);
-        continue;
-      }
 
       const targetFormat = this.getTargetFormat(target.agent);
       const targetFileName = this.getTargetFileName(resource.name, targetFormat);
@@ -223,7 +200,7 @@ export class SubagentsHandler implements ResourceHandler {
     const resources: InstalledResource[] = [];
 
     // Filter resources by type and scope
-    for (const [name, entry] of Object.entries(lockFile.resources)) {
+    for (const entry of Object.values(lockFile.resources)) {
       if (entry.type !== 'subagents') continue;
 
       // Check scope
@@ -310,7 +287,7 @@ export class SubagentsHandler implements ResourceHandler {
     if (scope === 'global' && config.globalSubagentsDir) {
       return config.globalSubagentsDir;
     } else if (scope === 'project') {
-      return join(this.projectRoot, config.subagentsDir);
+      return config.subagentsDir;
     } else {
       throw new Error(`Invalid scope: ${scope}`);
     }

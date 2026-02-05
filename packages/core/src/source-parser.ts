@@ -4,13 +4,12 @@
 
 import { readdir, readFile, stat, mkdir, rm } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
-import { join, resolve, basename, dirname } from 'node:path';
+import { join, resolve, basename, dirname, sep } from 'node:path';
 import { tmpdir } from 'node:os';
 import { Readable } from 'node:stream';
 import * as tar from 'tar';
 import {
   ParsedSource,
-  SourceType,
   ResourceFile,
   parseSource,
   normalizePath,
@@ -243,7 +242,7 @@ export class SourceParser {
    */
   private async parseLocal(
     source: ParsedSource,
-    options: DownloadOptions,
+    _options: DownloadOptions,
   ): Promise<SourceParseResult> {
     const { localPath } = source;
     if (!localPath) {
@@ -478,7 +477,7 @@ export class SourceParser {
    * Check if a path should be excluded
    */
   private shouldExclude(path: string): boolean {
-    const parts = path.split('/');
+    const parts = path.split(sep);
     for (const pattern of EXCLUDE_PATTERNS) {
       if (pattern.includes('*')) {
         // Simple wildcard matching
@@ -514,7 +513,7 @@ export class SourceParser {
           totalSize += stats.size;
         }
       }
-    } catch (error) {
+    } catch (_error) {
       // Ignore errors
     }
 

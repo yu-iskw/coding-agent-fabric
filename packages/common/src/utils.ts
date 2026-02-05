@@ -2,7 +2,8 @@
  * Utility functions for coding-agent-fabric
  */
 
-import { SourceType, ParsedSource, AgentType } from './types.js';
+import { sep } from 'node:path';
+import { ParsedSource, AgentType } from './types.js';
 
 /**
  * Parse a source string into a ParsedSource object
@@ -112,7 +113,7 @@ export function normalizePath(path: string): string {
   }
 
   // Remove trailing slashes
-  normalized = normalized.replace(/\/+$/, '');
+  normalized = normalized.replace(/[\\/]+$/, '');
 
   return normalized;
 }
@@ -158,10 +159,10 @@ export function getCurrentTimestamp(): string {
  * Ensure a directory path ends with the resource type subdirectory
  */
 export function ensureResourceSubdir(basePath: string, resourceType: string): string {
-  if (basePath.endsWith(`/${resourceType}`)) {
+  if (basePath.endsWith(`${sep}${resourceType}`)) {
     return basePath;
   }
-  return `${basePath}/${resourceType}`;
+  return `${basePath}${sep}${resourceType}`;
 }
 
 /**
@@ -169,7 +170,7 @@ export function ensureResourceSubdir(basePath: string, resourceType: string): st
  * Example: "skills/frontend/react/patterns" -> ["frontend", "react"]
  */
 export function extractCategories(sourcePath: string): string[] {
-  const parts = sourcePath.split('/');
+  const parts = sourcePath.split(/[\\/]/);
   // Remove first part (resource type) and last part (resource name)
   if (parts.length <= 2) return [];
   return parts.slice(1, -1);
@@ -191,7 +192,7 @@ export function generateSmartName(originalName: string, categories: string[]): s
  * Example: sourcePath="skills/frontend/react/patterns" -> "skills-frontend-react-patterns"
  */
 export function generateFullPathName(sourcePath: string): string {
-  return sourcePath.replace(/\//g, '-');
+  return sourcePath.replace(/[\\/]/g, '-');
 }
 
 /**
@@ -277,5 +278,5 @@ export function sanitizeFileName(name: string): string {
 export function isPathInside(childPath: string, parentPath: string): boolean {
   const normalizedChild = normalizePath(childPath);
   const normalizedParent = normalizePath(parentPath);
-  return normalizedChild.startsWith(normalizedParent + '/');
+  return normalizedChild.startsWith(normalizedParent + sep);
 }

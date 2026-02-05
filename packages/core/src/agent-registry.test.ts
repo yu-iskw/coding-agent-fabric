@@ -86,7 +86,7 @@ describe('AgentRegistry', () => {
     });
 
     it('should return undefined for unknown agent', () => {
-      const config = registry.get('unknown-agent' as any);
+      const config = registry.get('unknown-agent' as string);
       expect(config).toBeUndefined();
     });
   });
@@ -118,7 +118,7 @@ describe('AgentRegistry', () => {
     });
 
     it('should return undefined for unknown agent', () => {
-      const skillsDir = registry.getSkillsDir('unknown-agent' as any);
+      const skillsDir = registry.getSkillsDir('unknown-agent' as string);
       expect(skillsDir).toBeUndefined();
     });
   });

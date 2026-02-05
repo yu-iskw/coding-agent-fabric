@@ -4,10 +4,8 @@
 
 import { Command } from 'commander';
 import { PluginManager } from '@coding-agent-fabric/core';
-import type { ListOptions, RemoveOptions } from '../types/index.js';
+import type { AddOptions, RemoveOptions } from '../types/index.js';
 import { logger } from '../utils/logger.js';
-import { spinner } from '../utils/spinner.js';
-import { confirmAction, promptText } from '../utils/prompts.js';
 import { join } from 'node:path';
 import { cwd } from 'node:process';
 import { homedir } from 'node:os';
@@ -25,7 +23,7 @@ export function createPluginCommand(): Command {
     .argument('<source>', 'Plugin source (e.g., owner/repo, npm:package, ./path)')
     .option('-g, --global', 'Install globally')
     .option('-y, --yes', 'Skip confirmation prompts')
-    .action(async (source: string, options: any) => {
+    .action(async (source: string, options: AddOptions) => {
       try {
         await addPlugin(source, options);
       } catch (error) {
@@ -68,7 +66,7 @@ export function createPluginCommand(): Command {
 /**
  * Add a plugin
  */
-async function addPlugin(source: string, options: any): Promise<void> {
+async function addPlugin(_source: string, _options: AddOptions): Promise<void> {
   logger.header('Installing Plugin');
   logger.info('Plugin installation from source not yet fully implemented');
   // TODO: Implement actual plugin downloading and installation
@@ -106,7 +104,7 @@ async function listPlugins(): Promise<void> {
 /**
  * Remove a plugin
  */
-async function removePlugin(id: string, options: RemoveOptions): Promise<void> {
+async function removePlugin(id: string, _options: RemoveOptions): Promise<void> {
   // TODO: Implement plugin removal
   logger.info(`Removing plugin ${id} not yet implemented`);
 }

@@ -1,57 +1,91 @@
 # coding-agent-fabric
 
-`coding-agent-fabric` is a unified CLI for managing AI coding-agent resources.
+`coding-agent-fabric` is a universal CLI for managing AI coding-agent resources across multiple agents and platforms. It provides a unified way to discover, install, and manage skills, subagents, and other extensions.
 
-Core resources:
+## Core Resources
 
-- `skills` (built-in)
-- `subagents` (built-in)
+- **Skills**: Modular instructions and capabilities (e.g., `.md` or `.mdc` files) that enhance agent behavior.
+- **Subagents**: Specialized agent definitions (e.g., YAML or JSON) that can be invoked for specific tasks.
 
-Plugin-managed resources:
+## Supported Agents
 
-- `hooks` (Claude Code, Cursor, Gemini CLI plugins)
-- `mcp` (MCP servers plugin)
+The fabric automatically detects and manages resources for:
+
+- **Claude Code** (`.claude/`)
+- **Cursor** (`.cursor/rules/`)
+- **Gemini CLI (Codex)** (`.codex/`)
 
 ## Workspace Layout
 
 ```text
 packages/
-  cli/          # command router + UX
-  core/         # lock manager, source parser, plugin manager, core handlers
-  common/       # shared types + fs helpers
-  plugin-api/   # ResourceHandler interface
-  plugins/
-    claude-code-hooks/
-    cursor-hooks/
-    gemini-cli-hooks/
-    mcp/
+  cli/          # Command-line interface and UX
+  core/         # Lock management, source parsing, and resource handlers
+  common/       # Shared types, constants, and utilities
+  plugin-api/   # Base interfaces for third-party extensions
+  plugins/      # (In development) Bundled resource handlers
 ```
 
 ## Quick Start
 
 ```bash
+# Install dependencies
 pnpm install
+
+# Build the project
 pnpm build
-pnpm test
+
+# Check installation health
+coding-agent-fabric doctor
 ```
 
 ## CLI Examples
 
-```bash
-# Skills (core)
-coding-agent-fabric skills add ./my-resources
-coding-agent-fabric skills list
-coding-agent-fabric skills remove frontend-design
+### Skills
 
-# Subagents (core)
-coding-agent-fabric subagents add ./my-resources
+```bash
+# Add skills from a local directory or GitHub repo
+coding-agent-fabric skills add ./my-skills
+coding-agent-fabric skills add owner/repo
+
+# List all installed skills
+coding-agent-fabric skills list
+
+# Remove a skill
+coding-agent-fabric skills remove frontend-design
+```
+
+### Subagents
+
+```bash
+# Add subagents from a source
+coding-agent-fabric subagents add ./my-agents
+
+# List all installed subagents
 coding-agent-fabric subagents list
 
-# Hooks and MCP (plugin-managed)
-coding-agent-fabric hooks add ./my-resources --agent claude-code
-coding-agent-fabric mcp add ./my-resources --agent codex
-
-# Plugin management
-coding-agent-fabric plugin list
-coding-agent-fabric plugin add @coding-agent-fabric/plugin-cursor-hooks
+# Remove a subagent
+coding-agent-fabric subagents remove code-reviewer
 ```
+
+### System & Plugins
+
+```bash
+# Check installation health and detected agents
+coding-agent-fabric doctor
+
+# List installed plugins
+coding-agent-fabric plugin list
+```
+
+## Roadmap
+
+- [ ] **Remote Plugin Installation**: Install plugins directly from npm or GitHub.
+- [ ] **Hooks Plugin**: Manage agent-specific hooks (Pre/Post tool use).
+- [ ] **MCP Plugin**: Manage Model Context Protocol (MCP) server configurations.
+- [ ] **Auto-Updates**: Check for and install updates for managed resources.
+- [ ] **Registry**: A central repository for sharing skills and subagents.
+
+## License
+
+MIT

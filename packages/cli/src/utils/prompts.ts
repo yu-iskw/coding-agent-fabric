@@ -3,7 +3,7 @@
  */
 
 import inquirer from 'inquirer';
-import type { AgentType, Resource, InstallTarget } from '@coding-agent-fabric/common';
+import type { AgentType, Resource } from '@coding-agent-fabric/common';
 
 /**
  * Prompt for confirmation
