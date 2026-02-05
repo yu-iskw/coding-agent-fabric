@@ -116,7 +116,7 @@ It provides:
 
 ### High-Level Architecture
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────┐
 │                         coding-agent-fabric CLI                         │
 ├─────────────────────────────────────────────────────────────┤
@@ -482,29 +482,29 @@ interface ResourceHandler {
 - Added `isCore` flag to distinguish built-in handlers from plugin handlers
 - Plugins implement the same interface but with `isCore: false`
 
+```typescript
 interface Resource {
-type: string; // Handler type
-name: string; // Unique identifier
-version?: string; // Semantic version
-description: string;
-metadata: Record<string, unknown>; // Type-specific metadata
-files: ResourceFile[]; // Files to install
-dependencies?: ResourceDependency[];
+  type: string; // Handler type
+  name: string; // Unique identifier
+  version?: string; // Semantic version
+  description: string;
+  metadata: Record<string, unknown>; // Type-specific metadata
+  files: ResourceFile[]; // Files to install
+  dependencies?: ResourceDependency[];
 }
 
 interface InstallTarget {
-agent: AgentType;
-scope: 'global' | 'project';
-mode: 'symlink' | 'copy';
+  agent: AgentType;
+  scope: 'global' | 'project';
+  mode: 'symlink' | 'copy';
 }
 
 interface ValidationResult {
-valid: boolean;
-errors: string[];
-warnings: string[];
+  valid: boolean;
+  errors: string[];
+  warnings: string[];
 }
-
-````
+```
 
 ### 2. Built-In Resource Handlers
 
@@ -516,7 +516,7 @@ coding-agent-fabric includes two built-in resource handlers that work across all
 class SkillsHandler implements ResourceHandler {
   type = 'skills';
   displayName = 'Skills';
-  isCore = true;  // Built-in handler
+  isCore = true; // Built-in handler
 
   async discover(source: ParsedSource): Promise<Resource[]> {
     // Scan for SKILL.md files (supports nested directories)
@@ -536,9 +536,7 @@ class SkillsHandler implements ResourceHandler {
 
   getInstallPath(agent: AgentType, scope: 'global' | 'project'): string {
     const agentConfig = AGENT_REGISTRY[agent];
-    return scope === 'global'
-      ? agentConfig.globalSkillsDir
-      : agentConfig.skillsDir;
+    return scope === 'global' ? agentConfig.globalSkillsDir : agentConfig.skillsDir;
   }
 
   getSupportedAgents(): AgentType[] {
@@ -546,7 +544,7 @@ class SkillsHandler implements ResourceHandler {
     return Object.keys(AGENT_REGISTRY) as AgentType[];
   }
 }
-````
+```
 
 **Key Features:**
 
@@ -638,9 +636,9 @@ Install with:
 
 **Location:** `.coding-agent-fabric/lock.json` (project scope) or `~/.coding-agent-fabric/lock.json` (global scope)
 
-**Note:** For complete v2 schema with update history and granular management features, see [Granular Management Addendum](./design-addendum-granular-management.md).
+**Note:** For complete v2 schema with update history and granular management features, see the Granular Management Addendum.
 
-```typescript
+````typescript
 interface coding-agent-fabricLockFile {
   version: 2;  // Lock file format version
   lastUpdated: string;
@@ -671,60 +669,60 @@ interface PluginLockEntry {
   location: 'bundled' | 'project' | 'global';  // Where plugin is loaded from
 }
 
+```typescript
 type NamingStrategy =
   | 'smart-disambiguation'
   | 'full-path-prefix'
   | 'category-prefix'
   | 'original-name';
-}
-
+```typescript
 type ResourceLockEntry =
-  | SkillLockEntry
-  | HookLockEntry
-  | SubagentLockEntry
-  | MCPLockEntry
-  | PluginResourceLockEntry;
+| SkillLockEntry
+| HookLockEntry
+| SubagentLockEntry
+| MCPLockEntry
+| PluginResourceLockEntry;
 
 interface BaseLockEntry {
-  type: string;          // Discriminator: "skills", "hooks", "subagents", "mcp", etc.
-  handler: string;       // "built-in" or plugin ID (e.g., "@coding-agent-fabric/plugin-claude-code-hooks")
-  name: string;
-  version?: string;
-  source: string;        // "owner/repo", "npm:package", "local:./path"
-  sourceType: string;    // "github", "gitlab", "npm", "local"
-  sourceUrl: string;
-  installedAt: string;
-  updatedAt: string;
-  installedFor: {
-    agent: string;
-    scope: 'global' | 'project';
-    path: string;
-  }[];
+type: string; // Discriminator: "skills", "hooks", "subagents", "mcp", etc.
+handler: string; // "built-in" or plugin ID (e.g., "@coding-agent-fabric/plugin-claude-code-hooks")
+name: string;
+version?: string;
+source: string; // "owner/repo", "npm:package", "local:./path"
+sourceType: string; // "github", "gitlab", "npm", "local"
+sourceUrl: string;
+installedAt: string;
+updatedAt: string;
+installedFor: {
+agent: string;
+scope: 'global' | 'project';
+path: string;
+}[];
 }
 
 interface SkillLockEntry extends BaseLockEntry {
-  type: 'skills';
-  handler: 'built-in';   // Skills are core
-  originalName: string;  // Original name from SKILL.md
-  installedName: string; // Name after conflict resolution
-  sourcePath: string;    // Path in source repo (e.g., "skills/frontend/react/patterns")
-  categories: string[];  // Extracted from source path
-  namingStrategy?: NamingStrategy;
-  skillFolderHash?: string;  // GitHub tree SHA for update detection
+type: 'skills';
+handler: 'built-in'; // Skills are core
+originalName: string; // Original name from SKILL.md
+installedName: string; // Name after conflict resolution
+sourcePath: string; // Path in source repo (e.g., "skills/frontend/react/patterns")
+categories: string[]; // Extracted from source path
+namingStrategy?: NamingStrategy;
+skillFolderHash?: string; // GitHub tree SHA for update detection
 }
 
 interface SubagentLockEntry extends BaseLockEntry {
-  type: 'subagents';
-  handler: 'built-in';   // Subagents are core
-  model?: string;        // Model identifier (e.g., "claude-sonnet-4")
-  format: 'claude-code-yaml' | 'coding-agent-fabric-json';  // Source format
-  configHash: string;
+type: 'subagents';
+handler: 'built-in'; // Subagents are core
+model?: string; // Model identifier (e.g., "claude-sonnet-4")
+format: 'claude-code-yaml' | 'coding-agent-fabric-json'; // Source format
+configHash: string;
 }
 
 interface PluginResourceLockEntry extends BaseLockEntry {
-  type: string;          // Resource type (e.g., "hooks", "mcp")
-  handler: string;       // Plugin ID (e.g., "@coding-agent-fabric/plugin-claude-code-hooks")
-  metadata: Record<string, unknown>;  // Plugin-specific metadata
+type: string; // Resource type (e.g., "hooks", "mcp")
+handler: string; // Plugin ID (e.g., "@coding-agent-fabric/plugin-claude-code-hooks")
+metadata: Record<string, unknown>; // Plugin-specific metadata
 }
 ```
 
@@ -843,7 +841,7 @@ interface PluginResourceLockEntry extends BaseLockEntry {
     }
   }
 }
-```
+````
 
 **Key Changes in v2:**
 
@@ -869,7 +867,7 @@ coding-agent-fabric supports plugins for both **bundled resource types** (hooks,
 
 #### Plugin Structure
 
-```
+```text
 .coding-agent-fabric/
   plugins/
     my-custom-resource/
@@ -1171,7 +1169,7 @@ function parseSource(input: string): ParsedSource {
 
 Users currently using `skills` CLI can continue using it. coding-agent-fabric is designed to eventually replace it but doesn't require migration.
 
-#### Gradual Adoption Path:
+#### Gradual Adoption Path
 
 1. **Install coding-agent-fabric alongside skills CLI**
 
@@ -1211,9 +1209,9 @@ Users currently using `skills` CLI can continue using it. coding-agent-fabric is
 
 **No changes required.** Resources using the current SKILL.md format will work in coding-agent-fabric automatically.
 
-#### To Support Multiple Resource Types:
+#### To Support Multiple Resource Types
 
-```
+```text
 your-repo/
   skills/
     my-skill/
@@ -1326,21 +1324,21 @@ coding-agent-fabric hooks add your-org/your-repo
 
 ## Success Metrics
 
-### Phase 1 (MVP - 3 months)
+### Success Metrics: Phase 1 (MVP)
 
 - 1,000+ installs
 - 50+ resources published (across all types)
 - Support for 20+ agents (tested and verified)
 - 90%+ user satisfaction (survey)
 
-### Phase 2 (Extensibility - 5 months)
+### Success Metrics: Phase 2 (Extensibility)
 
 - 5,000+ installs
 - 200+ resources published
 - 5+ community plugins
 - 80% of users use multiple resource types
 
-### Phase 3 (Ecosystem - 9 months)
+### Success Metrics: Phase 3 (Ecosystem)
 
 - 10,000+ installs
 - 500+ resources published
@@ -1355,7 +1353,7 @@ coding-agent-fabric hooks add your-org/your-repo
 
 **File Structure:**
 
-```
+```text
 skills/
   my-skill/
     SKILL.md        # Required
@@ -1384,7 +1382,7 @@ Instructions for the agent...
 
 **File Structure:**
 
-```
+```text
 hooks/
   pre-commit/
     hook.json       # Metadata
@@ -1411,7 +1409,7 @@ hooks/
 
 **File Structure:**
 
-```
+```text
 subagents/
   code-reviewer/
     subagent.json   # Configuration
@@ -1436,7 +1434,7 @@ subagents/
 
 **File Structure:**
 
-```
+```text
 mcp/
   my-server/
     mcp-server.json  # Configuration

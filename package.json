@@ -19,8 +19,8 @@
     "lint:all": "pnpm lint:trunk-all",
     "lint:eslint": "eslint .",
     "lint:security": "trunk check --all --scope security",
-    "lint:trunk": "trunk check",
-    "lint:trunk-all": "trunk check --all",
+    "lint:trunk": "trunk check -y",
+    "lint:trunk-all": "trunk check --all -y",
     "test": "vitest run"
   },
   "devDependencies": {

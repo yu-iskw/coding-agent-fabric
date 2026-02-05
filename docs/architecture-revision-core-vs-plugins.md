@@ -155,7 +155,7 @@ Analysis of hook documentation reveals **fundamentally incompatible formats**:
 
 ### Core Built-In Resource Types
 
-**1. Skills**
+#### 1. Skills
 
 **Rationale:**
 
@@ -171,7 +171,7 @@ Analysis of hook documentation reveals **fundamentally incompatible formats**:
 - Updates (source tracking, version history)
 - Cross-agent compatibility (works everywhere)
 
-**2. Subagents**
+#### 2. Subagents
 
 **Rationale:**
 
@@ -203,7 +203,7 @@ Analysis of hook documentation reveals **fundamentally incompatible formats**:
 
 ### Plugin Resource Types
 
-**3. Hooks (via Plugins)**
+#### 3. Hooks (via Plugins)
 
 **Why Plugins:**
 
@@ -239,7 +239,7 @@ coding-agent-fabric plugin add @coding-agent-fabric/plugin-cursor-hooks
 coding-agent-fabric hooks add my-org/linters --agent cursor
 ```
 
-**4. MCP Servers (via Plugins)**
+#### 4. MCP Servers (via Plugins)
 
 **Why Plugins:**
 
@@ -252,7 +252,7 @@ coding-agent-fabric hooks add my-org/linters --agent cursor
 
 - `@coding-agent-fabric/plugin-mcp` - Handles MCP server installation
 
-**5. Custom Resources (via Plugin API)**
+#### 5. Custom Resources (via Plugin API)
 
 **Why Plugins:**
 
@@ -266,7 +266,7 @@ coding-agent-fabric hooks add my-org/linters --agent cursor
 
 ### Simplified Core Responsibilities
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────┐
 │                         coding-agent-fabric Core                        │
 ├─────────────────────────────────────────────────────────────┤
@@ -345,7 +345,7 @@ interface ResourceHandler {
 
 **Directory Structure (Workspace):**
 
-```
+```text
 packages/plugins/claude-code-hooks/
   package.json         # Package manifest
   plugin.json          # Plugin manifest
@@ -760,25 +760,4 @@ coding-agent-fabric plugin update
 
 ## Conclusion
 
-This revised architecture **reduces core complexity** while **maximizing extensibility**:
-
-- **Core:** Skills + Subagents (universal, consistent)
-- **Plugins:** Hooks + MCP + Custom (agent-specific, evolving)
-
-By making hooks a plugin rather than core, coding-agent-fabric can:
-
-- Support agent-specific features fully (no compromises)
-- Evolve plugins independently as agent specs change
-- Lower the barrier for community contributions
-- Keep the core simple and maintainable
-
-**Next Steps:**
-
-1. Update main design doc with this architecture
-2. Begin Phase 1 implementation (skills + subagents core)
-3. Design plugin API in detail
-4. Build first hooks plugin (Claude Code) as reference implementation
-
----
-
-**End of Architecture Revision**
+### End of Architecture Revision
