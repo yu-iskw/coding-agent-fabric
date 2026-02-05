@@ -4,9 +4,77 @@ set -e
 # Colors for output
 GREEN='\033[0;32m'
 RED='\033[0;31m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
+# Parse arguments
+VERBOSE=false
+for arg in "$@"; do
+  case $arg in
+    --verbose|-v)
+      VERBOSE=true
+      shift
+      ;;
+    --help|-h)
+      echo "Usage: $0 [OPTIONS]"
+      echo ""
+      echo "Options:"
+      echo "  --verbose, -v    Enable verbose output with debug logs and directory structures"
+      echo "  --help, -h       Show this help message"
+      echo ""
+      echo "Example:"
+      echo "  $0 --verbose"
+      exit 0
+      ;;
+    *)
+      ;;
+  esac
+done
+
+# Debug logging function
+debug_log() {
+  if [ "$VERBOSE" = true ]; then
+    echo -e "${BLUE}[DEBUG]${NC} $1"
+  fi
+}
+
+# Show directory structure with tree if available, otherwise use ls
+show_structure() {
+  local dir="$1"
+  local label="$2"
+
+  if [ "$VERBOSE" = true ]; then
+    echo -e "${YELLOW}=== $label ===${NC}"
+    if command -v tree &> /dev/null; then
+      tree -L 3 -a "$dir" 2>/dev/null || ls -la "$dir"
+    else
+      debug_log "tree command not available, using ls instead"
+      ls -laR "$dir" | head -50
+    fi
+    echo ""
+  fi
+}
+
 echo -e "${GREEN}Starting integration tests with real skills...${NC}"
+
+if [ "$VERBOSE" = true ]; then
+  echo -e "${YELLOW}=== Environment Diagnostics ===${NC}"
+  debug_log "Verbose mode enabled"
+  debug_log "Working directory: $(pwd)"
+  debug_log "User: $(whoami)"
+  debug_log "Shell: $SHELL"
+  debug_log "PATH: $PATH"
+
+  echo -e "${BLUE}[DEBUG]${NC} Available commands:"
+  command -v tree &> /dev/null && echo "  ✓ tree" || echo "  ✗ tree (will use ls instead)"
+  command -v git &> /dev/null && echo "  ✓ git" || echo "  ✗ git"
+  command -v pnpm &> /dev/null && echo "  ✓ pnpm" || echo "  ✗ pnpm"
+  command -v caf &> /dev/null && echo "  ✓ caf" || echo "  ✗ caf"
+
+  debug_log "CAF version: $(caf --version 2>&1 || echo 'not available')"
+  echo ""
+fi
 
 # 1. Check CLI availability
 echo "Scenario 1: Checking CLI version..."
@@ -20,6 +88,11 @@ caf --help > /dev/null || { echo -e "${RED}CLI help command failed${NC}"; exit 1
 echo "Scenario 3: Initializing test workspace..."
 cd /test-workspace
 pnpm init > /dev/null
+debug_log "Test workspace initialized at $(pwd)"
+if [ "$VERBOSE" = true ]; then
+  debug_log "Workspace contents:"
+  ls -la
+fi
 
 # 4. List skills
 echo "Scenario 4: Listing skills (should be empty initially)..."
@@ -29,7 +102,9 @@ caf skills list | grep "No skills installed" || { echo -e "${RED}Initial skills 
 echo "Scenario 5: Installing real skills from vercel-labs/agent-skills..."
 mkdir -p /tmp/repos
 cd /tmp/repos
+debug_log "Cloning vercel-labs/agent-skills to /tmp/repos"
 git clone --depth 1 https://github.com/vercel-labs/agent-skills.git
+show_structure "/tmp/repos/agent-skills" "Cloned Repository: vercel-labs/agent-skills"
 
 echo "Adding skills from vercel-labs/agent-skills..."
 # Return to workspace
@@ -48,11 +123,14 @@ fi
 
 echo "Verifying vercel skill installation..."
 caf skills list | grep "web-design-guidelines" || { echo -e "${RED}Vercel skill installation verification failed${NC}"; exit 1; }
+show_structure "/test-workspace/.claude/skills" "Installed Skills Structure (after Vercel skills)"
 
 # 6. Install real skills from Anthropic
 echo "Scenario 6: Installing real skills from anthropics/skills..."
 cd /tmp/repos
+debug_log "Cloning anthropics/skills to /tmp/repos"
 git clone --depth 1 https://github.com/anthropics/skills.git
+show_structure "/tmp/repos/skills" "Cloned Repository: anthropics/skills"
 
 echo "Adding skills from anthropics/skills..."
 cd /test-workspace
@@ -63,6 +141,7 @@ caf skills add /tmp/repos/skills --yes || { echo -e "${RED}Failed to add anthrop
 
 echo "Verifying anthropic skill installation..."
 caf skills list | grep "document-skills" || caf skills list | grep -i "pdf" || { echo -e "${RED}Anthropic skill installation verification failed${NC}"; exit 1; }
+show_structure "/test-workspace/.claude/skills" "Installed Skills Structure (after Anthropic skills)"
 
 # 7. Check subagents list
 echo "Scenario 7: Checking subagents list..."
@@ -71,7 +150,9 @@ caf subagents list || { echo -e "${RED}Subagents list command failed${NC}"; exit
 # 8. Install real skills from yu-iskw/github-project-skills
 echo "Scenario 8: Installing real skills from yu-iskw/github-project-skills..."
 cd /tmp/repos
+debug_log "Cloning yu-iskw/github-project-skills to /tmp/repos"
 git clone --depth 1 https://github.com/yu-iskw/github-project-skills.git
+show_structure "/tmp/repos/github-project-skills" "Cloned Repository: yu-iskw/github-project-skills"
 
 echo "Adding skills from github-project-skills..."
 cd /test-workspace
@@ -84,11 +165,15 @@ caf subagents add /tmp/repos/github-project-skills --yes --force || { echo -e "$
 echo "Verifying github-project-skills installation..."
 caf skills list | grep "gh-listing-issues" || { echo -e "${RED}github-project-skills skill verification failed${NC}"; exit 1; }
 caf subagents list | grep "github-project-manager" || { echo -e "${RED}github-project-skills subagent verification failed${NC}"; exit 1; }
+show_structure "/test-workspace/.claude/skills" "Installed Skills Structure (after github-project-skills)"
+show_structure "/test-workspace/.claude/subagents" "Installed Subagents Structure (after github-project-skills)"
 
 # 9. Install real skills from yu-iskw/meta-agent-skills
 echo "Scenario 9: Installing real skills from yu-iskw/meta-agent-skills..."
 cd /tmp/repos
+debug_log "Cloning yu-iskw/meta-agent-skills to /tmp/repos"
 git clone --depth 1 https://github.com/yu-iskw/meta-agent-skills.git
+show_structure "/tmp/repos/meta-agent-skills" "Cloned Repository: yu-iskw/meta-agent-skills"
 
 echo "Adding skills from meta-agent-skills..."
 cd /test-workspace
@@ -101,11 +186,15 @@ caf subagents add /tmp/repos/meta-agent-skills --yes --force || { echo -e "${RED
 echo "Verifying meta-agent-skills installation..."
 caf skills list | grep "meta-agent-skills" || { echo -e "${RED}meta-agent-skills verification failed${NC}"; exit 1; }
 caf subagents list | grep "maintainer-agent" || { echo -e "${RED}meta-agent-skills subagent verification failed${NC}"; exit 1; }
+show_structure "/test-workspace/.claude/skills" "Installed Skills Structure (after meta-agent-skills)"
+show_structure "/test-workspace/.claude/subagents" "Installed Subagents Structure (after meta-agent-skills)"
 
 # 10. Install real skills from yu-iskw/coding-agent-skills
 echo "Scenario 10: Installing real skills from yu-iskw/coding-agent-skills..."
 cd /tmp/repos
+debug_log "Cloning yu-iskw/coding-agent-skills to /tmp/repos"
 git clone --depth 1 https://github.com/yu-iskw/coding-agent-skills.git
+show_structure "/tmp/repos/coding-agent-skills" "Cloned Repository: yu-iskw/coding-agent-skills"
 
 echo "Adding skills from coding-agent-skills..."
 cd /test-workspace
@@ -116,6 +205,7 @@ caf skills add /tmp/repos/coding-agent-skills --yes --force || { echo -e "${RED}
 
 echo "Verifying coding-agent-skills installation..."
 caf skills list | grep "claude-code-cli" || { echo -e "${RED}coding-agent-skills verification failed${NC}"; exit 1; }
+show_structure "/test-workspace/.claude/skills" "Installed Skills Structure (after coding-agent-skills)"
 
 # 11. Install real skills from microsoft/skills via GitHub URL (nested directories under .github/skills)
 echo "Scenario 11: Installing real skills from microsoft/skills via GitHub URL..."
@@ -123,6 +213,7 @@ caf skills add https://github.com/microsoft/skills --yes --force || { echo -e "$
 
 echo "Verifying microsoft-skills installation..."
 caf skills list | grep "github-skills-azure-cosmos-db-py" || { echo -e "${RED}microsoft-skills verification failed${NC}"; exit 1; }
+show_structure "/test-workspace/.claude/skills" "Installed Skills Structure (after microsoft skills)"
 
 # 12. Remove a skill
 echo "Scenario 12: Removing a skill..."
@@ -247,6 +338,24 @@ echo "Scenario 18: Verifying package.json was not modified for git-based adds...
 if grep -q "anthropics/skills" /test-workspace/package.json || grep -q "vercel-labs/agent-skills" /test-workspace/package.json; then
     echo -e "${RED}package.json was unexpectedly modified for git-based installation${NC}"
     exit 1
+fi
+
+# Final summary in verbose mode
+if [ "$VERBOSE" = true ]; then
+  echo -e "${YELLOW}=== Final Test Summary ===${NC}"
+  debug_log "All scenarios completed successfully"
+
+  echo -e "${YELLOW}=== Final Skills List ===${NC}"
+  caf skills list
+
+  echo -e "${YELLOW}=== Final Subagents List ===${NC}"
+  caf subagents list
+
+  show_structure "/test-workspace/.claude/skills" "Final Skills Directory Structure"
+  show_structure "/test-workspace/.claude/subagents" "Final Subagents Directory Structure"
+
+  debug_log "Test workspace final state:"
+  ls -la /test-workspace
 fi
 
 echo -e "${GREEN}Integration tests with real skills passed!${NC}"
