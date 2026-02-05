@@ -91,4 +91,4 @@ Interested in contributing? Please read our [CONTRIBUTING.md](CONTRIBUTING.md) g
 
 ## License
 
-MIT
+Apache License 2.0
