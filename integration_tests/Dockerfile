@@ -28,9 +28,9 @@ RUN pnpm link --global
 
 # Prepare a clean workspace for integration tests
 WORKDIR /test-workspace
-ENV HOME=/test-workspace
+ENV HOME=/home/node
 
-# Make runner executable
+# Make runner and scenarios executable
 RUN chmod +x /app/integration_tests/scripts/runner.sh
 
 # Use non-root user

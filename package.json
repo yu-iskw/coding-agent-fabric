@@ -28,7 +28,8 @@
     "lint:trunk": "trunk check -y",
     "lint:trunk-all": "trunk check --all -y",
     "test": "vitest run",
-    "test:integration": "make -C integration_tests test"
+    "test:integration": "make -C integration_tests test",
+    "test:integration:verbose": "make -C integration_tests test VERBOSE=true"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",

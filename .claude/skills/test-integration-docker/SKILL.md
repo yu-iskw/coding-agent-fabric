@@ -23,7 +23,7 @@ This skill executes integration tests in a containerized environment using actua
 Ensure the Docker daemon is active, then execute the following command from the project root to build the image and run the full test suite:
 
 ```bash
-make -C integration_tests test
+make -C integration_tests test-verbose
 ```
 
 ### 2. Standard Makefile Targets
@@ -56,3 +56,5 @@ make -C integration_tests clean
 2. **Real-World Skills (Vercel)**: Clones `vercel-labs/agent-skills` and installs skills like `web-design-guidelines`.
 3. **Real-World Skills (Anthropic)**: Clones `anthropics/skills` and installs document skills.
 4. **Subagent Verification**: Lists available subagents in the clean container.
+5. **Multi-Agent Matrix**: Tests are executed for both `Claude Code` and `Cursor` agents.
+6. **Scope Isolation**: Tests are executed for both `project` and `global` scopes, verifying that global installations do not leak into the project's `package.json`.
