@@ -620,7 +620,7 @@ Hooks and MCP Servers are implemented as plugins but **bundled with coding-agent
 
 - `@coding-agent-fabric/plugin-claude-code-hooks` - Manages Claude Code hooks
 - `@coding-agent-fabric/plugin-cursor-hooks` - Manages Cursor hooks
-- `@coding-agent-fabric/plugin-gemini-cli-hooks` - Manages Gemini CLI hooks
+- `coding-agent-fabric-plugin-gemini-cli-hooks` - Manages Gemini CLI hooks
 - `@coding-agent-fabric/plugin-mcp` - Manages MCP servers across agents
 
 **Why Plugins?**
@@ -646,7 +646,7 @@ Error: 'hooks' requires a plugin.
 Install with:
   coding-agent-fabric plugin add @coding-agent-fabric/plugin-claude-code-hooks  # For Claude Code
   coding-agent-fabric plugin add @coding-agent-fabric/plugin-cursor-hooks       # For Cursor
-  coding-agent-fabric plugin add @coding-agent-fabric/plugin-gemini-cli-hooks   # For Gemini CLI
+  coding-agent-fabric plugin add coding-agent-fabric-plugin-gemini-cli-hooks   # For Gemini CLI
 ```
 
 ### 4. Lock File Schema (Version 2)
@@ -1119,7 +1119,7 @@ function parseSource(input: string): ParsedSource {
 
 - [x] Build `@coding-agent-fabric/plugin-claude-code-hooks`
 - [x] Build `@coding-agent-fabric/plugin-cursor-hooks`
-- [ ] Build `@coding-agent-fabric/plugin-gemini-cli-hooks`
+- [ ] Build `coding-agent-fabric-plugin-gemini-cli-hooks`
 - [ ] Test cross-agent hook compatibility
 
 #### Milestone 2.2: MCP Plugin

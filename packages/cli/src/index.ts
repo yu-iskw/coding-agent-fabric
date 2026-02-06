@@ -1,5 +1,5 @@
 /**
- * @coding-agent-fabric/cli
+ * coding-agent-fabric
  *
  * Command-line interface for coding-agent-fabric
  */

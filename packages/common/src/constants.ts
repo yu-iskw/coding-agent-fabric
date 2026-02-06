@@ -98,7 +98,7 @@ export const RULE_FILE_EXTENSIONS = ['.md', '.mdc'] as const;
 export const BUNDLED_PLUGINS = [
   '@coding-agent-fabric/plugin-claude-code-hooks',
   '@coding-agent-fabric/plugin-cursor-hooks',
-  '@coding-agent-fabric/plugin-gemini-cli-hooks',
+  'coding-agent-fabric-plugin-gemini-cli-hooks',
   '@coding-agent-fabric/plugin-mcp',
 ] as const;
 

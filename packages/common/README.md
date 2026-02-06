@@ -1,4 +1,4 @@
-# @coding-agent-fabric/common
+# coding-agent-fabric-common
 
 Shared types, utilities, and constants for coding-agent-fabric.
 
@@ -24,7 +24,7 @@ import {
   parseSource,
   getCurrentTimestamp,
   LOCK_FILE_VERSION,
-} from '@coding-agent-fabric/common';
+} from 'coding-agent-fabric-common';
 
 // Parse a source string
 const source = parseSource('vercel-labs/agent-skills');

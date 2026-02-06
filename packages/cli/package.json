@@ -46,5 +46,8 @@
     "@types/inquirer": "^9.0.7",
     "@types/node": "^24.10.10",
     "typescript": "^5.9.3"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

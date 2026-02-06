@@ -1,5 +1,5 @@
 /**
- * @coding-agent-fabric/plugin-api
+ * coding-agent-fabric-plugin-api
  *
  * Plugin API and base interfaces for coding-agent-fabric resource handlers
  */

@@ -34,7 +34,7 @@ Before you begin, ensure you have the following installed:
 4.  **Check installation health**:
     ```bash
     # Check installation health and detected agents
-    pnpm --filter @coding-agent-fabric/cli dev doctor
+    pnpm --filter coding-agent-fabric dev doctor
     ```
 
 ## Workspace Layout
@@ -65,7 +65,7 @@ packages/
 
 ```mermaid
 graph TD
-    subgraph CLI ["@coding-agent-fabric/cli"]
+    subgraph CLI ["coding-agent-fabric"]
         Entry["cli.ts"]
         Cmds["src/commands/"]
         Entry --> Cmds
@@ -85,7 +85,7 @@ graph TD
         RH["ResourceHandler"]
     end
 
-    subgraph PLUGINS ["@coding-agent-fabric/plugins/*"]
+    subgraph PLUGINS ["coding-agent-fabric-plugins/*"]
         Hooks["claude-code-hooks"]
         Cursor["cursor-hooks"]
         MCP["mcp"]
