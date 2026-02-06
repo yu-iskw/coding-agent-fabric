@@ -233,7 +233,7 @@ Analysis of hook documentation reveals **fundamentally incompatible formats**:
 
 - `@coding-agent-fabric/plugin-claude-code-hooks` - Handles Claude Code hooks
 - `@coding-agent-fabric/plugin-cursor-hooks` - Handles Cursor hooks
-- `@coding-agent-fabric/plugin-gemini-cli-hooks` - Handles Gemini CLI hooks
+- `coding-agent-fabric-plugin-gemini-cli-hooks` - Handles Gemini CLI hooks
 
 **Plugin Responsibilities:**
 
@@ -763,7 +763,7 @@ coding-agent-fabric plugin update
 
 **Question:** What if two plugins both try to handle the same resource type?
 
-**Example:** `@coding-agent-fabric/plugin-claude-hooks` and `@community/better-claude-hooks`
+**Example:** `coding-agent-fabric-plugin-claude-hooks` and `@community/better-claude-hooks`
 
 **Options:**
 

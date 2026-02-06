@@ -63,7 +63,7 @@ jobs:
           node-version-file: .node-version
           registry-url: https://registry.npmjs.org
           # TODO: Replace with your scope
-          scope: ''
+          scope: coding-agent-fabric
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
       - name: Install dependencies

@@ -1,5 +1,5 @@
 /**
- * @coding-agent-fabric/plugin-api
+ * coding-agent-fablic-plugin-api
  *
  * Plugin API and base interfaces for coding-agent-fabric resource handlers
  */
