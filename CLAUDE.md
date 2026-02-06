@@ -93,6 +93,7 @@ This decomposes tasks into independent subtasks with file ownership, executes th
 | `manage-adr`                   | Manage Architecture Decision Records (init, create, list, link ADRs in `docs/adr`)             |
 | `manage-changelog`             | Manage changelogs with Changie (init, add fragments, batch releases, merge into CHANGELOG.md)  |
 | `node-upgrade`                 | Safely upgrade Node.js dependencies in pnpm workspaces                                         |
+| `bumpup-versions`              | Consistently bump and synchronize versions across all packages in the monorepo                 |
 | `security-vulnerability-audit` | Audit security vulnerabilities using Trunk (Trivy and OSV-scanner)                             |
 | `setup-dev-env`                | Set up the development environment (Node.js, pnpm, Trunk)                                      |
 | `test-and-fix`                 | Run unit tests and automatically fix failures, regression bugs, or test mismatches             |

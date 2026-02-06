@@ -1,6 +1,6 @@
 {
   "name": "@coding-agent-fabric/cli",
-  "version": "0.1.0",
+  "version": "0.1.3",
   "description": "Command-line interface for coding-agent-fabric",
   "keywords": [
     "coding-agent-fabric",

@@ -1,6 +1,6 @@
 {
   "name": "@coding-agent-fabric/plugin-mcp",
-  "version": "0.1.0",
+  "version": "0.1.3",
   "description": "Plugin for managing Model Context Protocol (MCP) servers",
   "keywords": [
     "coding-agent-fabric",
