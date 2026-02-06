@@ -45,14 +45,14 @@ The project is a monorepo managed with pnpm workspaces.
 
 ```text
 packages/
-  cli            # Command-line interface for coding-agent-fabric
-  common         # Shared types, utilities, and constants for coding-agent-fabric
-  core           # Core logic for coding-agent-fabric: AgentRegistry, SkillsHandler, SubagentsHandler, RulesHandler
-  plugin-api     # Plugin API and base interfaces for coding-agent-fabric resource handlers
+  cli            # Command-line interface (@coding-agent-fabric/cli)
+  common         # Shared types and utilities (@coding-agent-fabric/common)
+  core           # Core logic and agent registry (@coding-agent-fabric/core)
+  plugin-api     # Plugin API and base interfaces (@coding-agent-fabric/plugin-api)
   plugins/
-    claude-code-hooks # Plugin for managing Claude Code hooks
-    cursor-hooks # Plugin for managing Cursor hooks
-    mcp          # Plugin for managing Model Context Protocol (MCP) servers
+    claude-code-hooks # Plugin for Claude Code hooks (@coding-agent-fabric/plugin-claude-code-hooks)
+    cursor-hooks      # Plugin for Cursor hooks (@coding-agent-fabric/plugin-cursor-hooks)
+    mcp               # Plugin for MCP server management (@coding-agent-fabric/plugin-mcp)
 ```
 
 <!-- /SYNC:LAYOUT -->
