@@ -1,11 +1,11 @@
-# @coding-agent-fablic/cli
+# @coding-agent-fabric/cli
 
-Command-line interface for coding-agent-fablic.
+Command-line interface for coding-agent-fabric.
 
 ## Installation
 
 ```bash
-npm install -g @coding-agent-fablic/cli
+npm install -g @coding-agent-fabric/cli
 ```
 
 ## Usage
