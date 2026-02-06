@@ -2,6 +2,20 @@
 
 `coding-agent-fabric` is a universal CLI for managing AI coding-agent resources across multiple agents and platforms. It provides a unified way to discover, install, and manage skills, subagents, and other extensions.
 
+## Installation
+
+You can install the CLI globally:
+
+```bash
+npm install -g @coding-agent-fabric/cli
+```
+
+Or run it directly without installation using `npx`:
+
+```bash
+npx @coding-agent-fabric/cli <command>
+```
+
 ## Core Resources
 
 - **Skills**: Modular instructions and capabilities (e.g., `.md` or `.mdc` files) that enhance agent behavior.
@@ -19,65 +33,65 @@ The fabric automatically detects and manages resources for:
 
 <!-- SYNC:COMMANDS -->
 
-### rules
+### Rules
 
 Manage AI agent rules
 
 ```bash
 # Install rules from a source
-caf rules add
+caf rules add owner/repo
 # List installed rules
 caf rules list
 # Remove a rule
-caf rules remove
+caf rules remove rule-name
 # Update all rules
 caf rules update
 ```
 
-### skills
+### Skills
 
 Manage AI agent skills
 
 ```bash
 # Install skills from a source
-caf skills add
+caf skills add owner/repo
 # List installed skills
 caf skills list
 # Remove a skill
-caf skills remove
+caf skills remove skill-name
 # Update all skills
 caf skills update
 ```
 
-### subagents
+### Subagents
 
 Manage AI subagents
 
 ```bash
 # Install subagents from a source
-caf subagents add
+caf subagents add owner/repo
 # List installed subagents
 caf subagents list
 # Remove a subagent
-caf subagents remove
+caf subagents remove subagent-name
 # Update all subagents
 caf subagents update
 ```
 
-### plugin
+### Plugins
 
 Manage coding-agent-fabric plugins
 
 ```bash
 # Install a third-party plugin
-caf plugin add
+caf plugin add owner/repo
 # List installed plugins
 caf plugin list
 # Remove a plugin
-caf plugin remove
+caf plugin remove plugin-id
 ```
 
-### system
+### System
 
 System management commands
 
@@ -92,11 +106,25 @@ caf update
 
 <!-- /SYNC:COMMANDS -->
 
+## Packages
+
+The following packages are part of the `coding-agent-fabric` ecosystem:
+
+| Package                                                                               | Description                      |
+| :------------------------------------------------------------------------------------ | :------------------------------- |
+| [`@coding-agent-fabric/cli`](packages/cli)                                            | Command-line interface           |
+| [`@coding-agent-fabric/core`](packages/core)                                          | Core logic and agent registry    |
+| [`@coding-agent-fabric/common`](packages/common)                                      | Shared types and utilities       |
+| [`@coding-agent-fabric/plugin-api`](packages/plugin-api)                              | API for building plugins         |
+| [`@coding-agent-fabric/plugin-claude-code-hooks`](packages/plugins/claude-code-hooks) | Plugin for Claude Code hooks     |
+| [`@coding-agent-fabric/plugin-cursor-hooks`](packages/plugins/cursor-hooks)           | Plugin for Cursor hooks          |
+| [`@coding-agent-fabric/plugin-mcp`](packages/plugins/mcp)                             | Plugin for MCP server management |
+
 ## Roadmap
 
+- [x] **Hooks Plugin**: Manage agent-specific hooks (Pre/Post tool use).
+- [x] **MCP Plugin**: Manage Model Context Protocol (MCP) server configurations.
 - [ ] **Remote Plugin Installation**: Install plugins directly from npm or GitHub.
-- [ ] **Hooks Plugin**: Manage agent-specific hooks (Pre/Post tool use).
-- [ ] **MCP Plugin**: Manage Model Context Protocol (MCP) server configurations.
 - [ ] **Auto-Updates**: Check for and install updates for managed resources.
 - [ ] **Registry**: A central repository for sharing skills and subagents.
 
