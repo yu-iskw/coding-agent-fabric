@@ -1,6 +1,6 @@
 {
   "name": "@coding-agent-fabric/plugin-api",
-  "version": "0.1.0",
+  "version": "0.1.3",
   "description": "Plugin API and base interfaces for coding-agent-fabric resource handlers",
   "keywords": [
     "coding-agent-fabric",

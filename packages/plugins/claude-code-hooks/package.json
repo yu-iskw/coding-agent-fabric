@@ -1,6 +1,6 @@
 {
   "name": "@coding-agent-fabric/plugin-claude-code-hooks",
-  "version": "0.1.0",
+  "version": "0.1.3",
   "description": "Plugin for managing Claude Code hooks",
   "keywords": [
     "coding-agent-fabric",
