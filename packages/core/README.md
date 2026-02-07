@@ -1,26 +1,37 @@
-# @coding-agent-fabric/core
+# @agentkit/core
 
-Core logic and system layer for coding-agent-fabric.
+> **Migration Note:** This package was formerly `@coding-agent-fabric/core`. See [Migration Guide](../../docs/migration-from-caf.md).
+
+Core logic and system layer for **AgentKit** - universal control plane for coding agents.
 
 ## Overview
 
 The core package provides the foundational classes and logic for managing AI agent resources:
 
+- **ResourceRegistry**: Canonical storage and management for all resources (v0.2+)
 - **AgentRegistry**: Manages agent configurations and detects installed agents
-- **SkillsHandler**: Manages skills resources with discovery, installation, and naming strategies
-- **SubagentsHandler**: Manages subagent resources with format conversion support (YAML ↔ JSON)
+- **SkillsHandler**: Manages skills resources with discovery and installation
+- **SubagentsHandler**: Manages subagent resources with format conversion (YAML ↔ JSON)
+- **RulesHandler**: Manages agent rules and policies
 - **PluginManager**: Manages the lifecycle of third-party plugins
+- **Renderers**: Translate canonical resources to agent-specific formats (v0.2+)
 
-## Resource Management
+## Architecture
 
-Resource management in `coding-agent-fabric` leverages `pnpm` for downloading, versioning, and caching. Resources (skills, subagents, etc.) are installed as dev dependencies in the project's `package.json`, and then "deployed" to the specific directories expected by each agent (e.g., `.claude/skills/`).
+AgentKit v0.2 introduces a **canonical resource model**:
+
+1. **Canonical Storage**: All resources normalized into a unified schema
+2. **Renderers**: Translate canonical → agent-specific formats (`.claude/`, `.cursor/`, `.codex/`)
+3. **Plugin System**: Extend with agent-specific hooks and MCP management
+
+Resource management leverages `pnpm` for downloading, versioning, and caching. Resources are installed as dev dependencies, then synchronized to agent directories.
 
 ## Usage
 
 ### AgentRegistry
 
 ```typescript
-import { AgentRegistry } from '@coding-agent-fabric/core';
+import { AgentRegistry } from '@agentkit/core';
 
 // Initialize agent registry
 const registry = new AgentRegistry(process.cwd());
@@ -41,7 +52,7 @@ const globalSkillsDir = registry.getSkillsDir('claude-code', true);
 ### SkillsHandler
 
 ```typescript
-import { SkillsHandler, AgentRegistry } from '@coding-agent-fabric/core';
+import { SkillsHandler, AgentRegistry } from '@agentkit/core';
 
 const agentRegistry = new AgentRegistry(projectRoot);
 const handler = new SkillsHandler({
@@ -61,7 +72,7 @@ await handler.install(resources[0], [{ agent: 'claude-code', scope: 'project', m
 ### SubagentsHandler
 
 ```typescript
-import { SubagentsHandler, AgentRegistry } from '@coding-agent-fabric/core';
+import { SubagentsHandler, AgentRegistry } from '@agentkit/core';
 
 const agentRegistry = new AgentRegistry(projectRoot);
 const handler = new SubagentsHandler({
@@ -81,5 +92,5 @@ await handler.install(resources[0], [{ agent: 'claude-code', scope: 'project', m
 ## Installation
 
 ```bash
-pnpm add @coding-agent-fabric/core
+pnpm add @agentkit/core
 ```
