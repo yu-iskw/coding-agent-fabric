@@ -1,90 +1,89 @@
-# @coding-agent-fabric/cli
+# @agentkit/cli
 
-Command-line interface for coding-agent-fabric.
+> **Migration Note:** This package was formerly `@coding-agent-fabric/cli`. See [Migration Guide](../../docs/migration-from-caf.md).
+
+Command-line interface for **AgentKit** - universal control plane for coding agents.
 
 ## Installation
 
-You can install the CLI globally:
+Install the CLI globally:
 
 ```bash
-npm install -g @coding-agent-fabric/cli
+npm install -g @agentkit/cli
 ```
 
 Or run it directly without installation using `npx`:
 
 ```bash
-npx @coding-agent-fabric/cli <command>
+npx @agentkit/cli <command>
 ```
 
 ## Usage
 
 ```bash
-# Install rules from a repository
-caf rules add owner/repo
-
-# Install skills from a local directory
-caf skills add ./my-skills
+# Install resources
+agentkit add owner/repo --type skill
+agentkit add ./my-skills --type rule
 
 # List installed resources
-caf rules list
-caf skills list
-caf subagents list
+agentkit list --type skill
+agentkit list --type rule
+agentkit list --type subagent
 
 # Remove a resource
-caf rules remove my-rule
-caf plugin remove my-plugin-id
+agentkit remove my-skill
+agentkit plugin remove my-plugin-id
 
 # Check installation health
-caf doctor
+agentkit doctor
 
 # Update all resources
-caf update
+agentkit update
+
+# Legacy compatibility (deprecated):
+# caf skills add owner/repo
 ```
 
 ## Commands
 
-### Rules
+### Unified Resource Management (v0.2+)
 
-Manage AI agent rules (e.g., `.cursorrules`, `.claude/rules`).
+- `agentkit add <source> [--type skill|rule|subagent]` - Install a resource
+- `agentkit list [--type <type>]` - List installed resources
+- `agentkit remove <name>` - Remove a resource
+- `agentkit update` - Update all resources
 
-- `caf rules add <source>` - Install rules from a source (repository, local path, or npm)
-- `caf rules list` - List installed rules
-- `caf rules remove <name>` - Remove a rule
-- `caf rules update` - Update all rules
+### Initialization & Sync
 
-### Skills
+- `agentkit init` - Auto-detect agents and scaffold directories
+- `agentkit sync [--agent <agent>]` - Sync resources to agent directories
 
-Manage AI agent skills.
+### MCP Discovery (v0.2+)
 
-- `caf skills add <source>` - Install skills from a source
-- `caf skills list` - List installed skills
-- `caf skills remove <name>` - Remove a skill
-- `caf skills update` - Update all skills
+- `agentkit mcp serve` - Start MCP discovery server for runtime resource querying
 
-### Subagents
+### Project Setup (v0.2+)
 
-Manage AI subagents.
-
-- `caf subagents add <source>` - Install subagents from a source
-- `caf subagents list` - List installed subagents
-- `caf subagents remove <name>` - Remove a subagent
-- `caf subagents update` - Update all subagents
+- `agentkit primer` - Generate project instructions (CLAUDE.md, etc.)
 
 ### Plugins
 
-Manage `coding-agent-fabric` plugins.
-
-- `caf plugin add <source>` - Install a third-party plugin
-- `caf plugin list` - List installed plugins
-- `caf plugin remove <id>` - Remove a plugin
+- `agentkit plugin add <source>` - Install a third-party plugin
+- `agentkit plugin list` - List installed plugins
+- `agentkit plugin remove <id>` - Remove a plugin
 
 ### System
 
-System management and maintenance.
+- `agentkit doctor` - Check installation health and detected agents
+- `agentkit update` - Update all resources to latest versions
 
-- `caf doctor` - Check the health of your installation and detected agents
-- `caf check` - Check for updates across all resources
-- `caf update` - Update all resources to their latest versions
+### Legacy Commands (Deprecated)
+
+For backward compatibility, these commands still work but print deprecation warnings:
+
+- `agentkit skills <add|list|remove|update>` → Use `agentkit add/list/remove --type skill`
+- `agentkit rules <add|list|remove|update>` → Use `agentkit add/list/remove --type rule`
+- `agentkit subagents <add|list|remove|update>` → Use `agentkit add/list/remove --type subagent`
 
 ## Global Options
 

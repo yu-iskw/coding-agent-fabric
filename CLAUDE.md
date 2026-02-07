@@ -1,8 +1,10 @@
-# TypeScript Monorepo - Claude Code Memory
+# AgentKit - Claude Code Memory
 
 ## Project Overview
 
-This is a production-ready TypeScript monorepo template using modern tooling:
+**AgentKit** (formerly `coding-agent-fabric`) is a universal control plane for managing coding agent resources. This production-ready TypeScript monorepo provides portable skills, rules, and subagents across multiple AI coding platforms.
+
+**Tech Stack:**
 
 - **Package Manager**: pnpm (with workspace support)
 - **Runtime**: Node.js (see `.node-version` for current version)

@@ -1,10 +1,10 @@
-# coding-agent-fabric-common
+# AgentKit-common
 
-Shared types, utilities, and constants for coding-agent-fabric.
+Shared types, utilities, and constants for AgentKit.
 
 ## Overview
 
-This package provides the foundational types and utilities used across all coding-agent-fabric packages. It includes:
+This package provides the foundational types and utilities used across all AgentKit packages. It includes:
 
 - **Types**: Core type definitions for resources, agents, sources, and lock files
 - **Constants**: Configuration constants and default values
@@ -12,7 +12,7 @@ This package provides the foundational types and utilities used across all codin
 
 ## Installation
 
-This package is internal to the coding-agent-fabric monorepo and is not published separately.
+This package is internal to the AgentKit monorepo and is not published separately.
 
 ## Usage
 
@@ -24,7 +24,7 @@ import {
   parseSource,
   getCurrentTimestamp,
   LOCK_FILE_VERSION,
-} from 'coding-agent-fabric-common';
+} from 'AgentKit-common';
 
 // Parse a source string
 const source = parseSource('vercel-labs/agent-skills');
@@ -56,7 +56,7 @@ const timestamp = getCurrentTimestamp();
 ### Constants
 
 - `LOCK_FILE_VERSION` - Current lock file version (2)
-- `CONFIG_DIR_NAME` - Configuration directory name (.coding-agent-fabric)
+- `CONFIG_DIR_NAME` - Configuration directory name (.AgentKit)
 - `SKILL_FILE_NAME` - Skill file name (SKILL.md)
 - `CORE_RESOURCE_TYPES` - Core resource types (skills, subagents)
 - `BUNDLED_PLUGINS` - Bundled plugin IDs

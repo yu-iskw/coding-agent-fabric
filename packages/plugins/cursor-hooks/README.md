@@ -1,4 +1,4 @@
-# @coding-agent-fabric/plugin-cursor-hooks
+# @agentkit/plugin-cursor-hooks
 
 Plugin for managing Cursor IDE hooks.
 

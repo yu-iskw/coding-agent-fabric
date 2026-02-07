@@ -1,4 +1,4 @@
-# @coding-agent-fabric/plugin-claude-code-hooks
+# @agentkit/plugin-claude-code-hooks
 
 Plugin for managing Claude Code hooks (PreToolUse and PostToolUse).
 

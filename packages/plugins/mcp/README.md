@@ -1,4 +1,4 @@
-# @coding-agent-fabric/plugin-mcp
+# @agentkit/plugin-mcp
 
 Plugin for managing Model Context Protocol (MCP) servers.
 

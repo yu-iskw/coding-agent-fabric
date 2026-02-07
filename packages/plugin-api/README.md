@@ -1,10 +1,10 @@
-# @coding-agent-fabric/plugin-api
+# @agentkit/plugin-api
 
-Plugin API and base interfaces for coding-agent-fabric resource handlers.
+Plugin API and base interfaces for AgentKit resource handlers.
 
 ## Overview
 
-This package defines the core plugin system for coding-agent-fabric. It includes:
+This package defines the core plugin system for AgentKit. It includes:
 
 - **ResourceHandler Interface**: Standard interface that all resource handlers (core and plugin) must implement
 - **Plugin Manifest**: Schema for plugin.json files
@@ -13,15 +13,15 @@ This package defines the core plugin system for coding-agent-fabric. It includes
 
 ## Installation
 
-This package is internal to the coding-agent-fabric monorepo and is not published separately.
+This package is internal to the AgentKit monorepo and is not published separately.
 
 ## Usage
 
 ### Implementing a Resource Handler
 
 ```typescript
-import { ResourceHandler, BaseResourceHandler } from '@coding-agent-fabric/plugin-api';
-import type { Resource, ParsedSource, AgentType } from '@coding-agent-fabric/plugin-api';
+import { ResourceHandler, BaseResourceHandler } from '@agentkit/plugin-api';
+import type { Resource, ParsedSource, AgentType } from '@agentkit/plugin-api';
 
 class MyResourceHandler extends BaseResourceHandler {
   readonly type = 'my-resource';
@@ -63,7 +63,7 @@ class MyResourceHandler extends BaseResourceHandler {
 
 ```typescript
 // handler.ts
-import { PluginExport, PluginContext } from '@coding-agent-fabric/plugin-api';
+import { PluginExport, PluginContext } from '@agentkit/plugin-api';
 import { MyResourceHandler } from './my-resource-handler.js';
 
 const plugin: PluginExport = {
@@ -96,7 +96,7 @@ export default plugin;
 
 ### Re-exported Types
 
-Common types from `@coding-agent-fabric/common`:
+Common types from `@agentkit/common`:
 
 - `AgentType`, `Resource`, `InstallTarget`, `ParsedSource`, `InstalledResource`, `ValidationResult`, `UpdateCheck`, `DiscoverOptions`, `InstallOptions`, `RemoveOptions`, `Scope`
 
