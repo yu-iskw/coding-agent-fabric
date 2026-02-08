@@ -1,0 +1,168 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentkit.dev/schemas/lockfile.schema.json",
+  "title": "AgentKit Lockfile",
+  "description": "Schema for agentkit.lock - resolved, immutable resource state",
+  "type": "object",
+  "required": ["version", "lastUpdated", "resources"],
+  "properties": {
+    "version": {
+      "type": "integer",
+      "description": "Lockfile schema version",
+      "const": 1
+    },
+    "lastUpdated": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp of last update"
+    },
+    "config": {
+      "type": "object",
+      "description": "Resolved configuration snapshot",
+      "properties": {
+        "defaultScope": {
+          "type": "string",
+          "enum": ["project", "global"]
+        },
+        "preferredAgents": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "namingStrategy": {
+          "type": "string"
+        },
+        "updateStrategy": {
+          "type": "string"
+        }
+      }
+    },
+    "resources": {
+      "type": "object",
+      "description": "Installed resources (key = resource name)",
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "type",
+          "version",
+          "source",
+          "sourceType",
+          "sourceUrl",
+          "installedAt",
+          "integrity"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["skill", "rule", "subagent", "mcp-server", "workflow", "context"]
+          },
+          "version": {
+            "type": "string",
+            "description": "Resolved version"
+          },
+          "source": {
+            "type": "string",
+            "description": "Source specifier (pnpm-style)",
+            "examples": [
+              "github:agentkit/skills-typescript#v1.2.3",
+              "npm:@acme/rules@^2.0.0",
+              "local:./skills"
+            ]
+          },
+          "sourceType": {
+            "type": "string",
+            "enum": ["github", "gitlab", "npm", "local", "registry"]
+          },
+          "sourceUrl": {
+            "type": "string",
+            "format": "uri",
+            "description": "Full URL to source"
+          },
+          "installedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When resource was first installed"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When resource was last updated"
+          },
+          "integrity": {
+            "type": "string",
+            "pattern": "^sha(256|384|512)-[A-Za-z0-9+/=]+$",
+            "description": "Subresource Integrity hash"
+          },
+          "installedFor": {
+            "type": "array",
+            "description": "Agents and locations where installed",
+            "items": {
+              "type": "object",
+              "required": ["agent", "scope", "path"],
+              "properties": {
+                "agent": {
+                  "type": "string",
+                  "description": "Agent name"
+                },
+                "scope": {
+                  "type": "string",
+                  "enum": ["project", "global"]
+                },
+                "path": {
+                  "type": "string",
+                  "description": "Absolute path where installed"
+                }
+              }
+            }
+          },
+          "qualityScore": {
+            "type": "object",
+            "description": "Computed quality scores",
+            "properties": {
+              "structure": {"type": "number", "minimum": 0, "maximum": 5},
+              "clarity": {"type": "number", "minimum": 0, "maximum": 5},
+              "specificity": {"type": "number", "minimum": 0, "maximum": 5},
+              "advanced": {"type": "number", "minimum": 0, "maximum": 5},
+              "overall": {"type": "number", "minimum": 0, "maximum": 5}
+            }
+          },
+          "dependencies": {
+            "type": "array",
+            "description": "Resolved dependencies",
+            "items": {
+              "type": "object",
+              "properties": {
+                "type": {"type": "string"},
+                "name": {"type": "string"},
+                "version": {"type": "string"}
+              }
+            }
+          },
+          "metadata": {
+            "type": "object",
+            "description": "Type-specific metadata",
+            "additionalProperties": true
+          }
+        }
+      }
+    },
+    "plugins": {
+      "type": "object",
+      "description": "Installed plugins (key = plugin name)",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["version", "installedAt", "enabled"],
+        "properties": {
+          "version": {"type": "string"},
+          "installedAt": {"type": "string", "format": "date-time"},
+          "enabled": {"type": "boolean"},
+          "location": {
+            "type": "string",
+            "enum": ["bundled", "project", "global"]
+          },
+          "integrity": {"type": "string"}
+        }
+      }
+    }
+  },
+  "additionalProperties": false
+}

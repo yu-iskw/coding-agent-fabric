@@ -1,0 +1,169 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentkit.dev/schemas/manifest.schema.json",
+  "title": "AgentKit Manifest",
+  "description": "Schema for agentkit.yaml - defines desired resource state",
+  "type": "object",
+  "required": ["version"],
+  "properties": {
+    "version": {
+      "type": "integer",
+      "description": "Manifest schema version",
+      "const": 1
+    },
+    "config": {
+      "type": "object",
+      "description": "Global configuration",
+      "properties": {
+        "defaultScope": {
+          "type": "string",
+          "enum": ["project", "global"],
+          "default": "project",
+          "description": "Default installation scope"
+        },
+        "preferredAgents": {
+          "type": "array",
+          "description": "Agents to install resources for (empty = all detected)",
+          "items": {
+            "type": "string",
+            "enum": [
+              "claude-code",
+              "cursor",
+              "codex",
+              "gemini-cli",
+              "windsurf",
+              "aider",
+              "continue",
+              "github-copilot"
+            ]
+          },
+          "uniqueItems": true,
+          "default": []
+        },
+        "namingStrategy": {
+          "type": "string",
+          "enum": [
+            "smart-disambiguation",
+            "full-path-prefix",
+            "category-prefix",
+            "original-name"
+          ],
+          "default": "smart-disambiguation",
+          "description": "How to resolve naming conflicts"
+        },
+        "updateStrategy": {
+          "type": "string",
+          "enum": ["parallel", "sequential"],
+          "default": "parallel",
+          "description": "How to update multiple resources"
+        },
+        "autoUpdate": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically check for updates"
+        },
+        "validateOnSync": {
+          "type": "boolean",
+          "default": true,
+          "description": "Run validation during sync"
+        },
+        "requireQualityScore": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 5,
+          "description": "Minimum quality score required (0 = no requirement)"
+        }
+      }
+    },
+    "resources": {
+      "type": "array",
+      "description": "Resources to install",
+      "items": {
+        "type": "object",
+        "required": ["source", "type"],
+        "properties": {
+          "source": {
+            "type": "string",
+            "description": "Resource source (GitHub, npm, local, registry)",
+            "examples": [
+              "github:agentkit/skills-typescript",
+              "npm:@acme/coding-rules",
+              "local:./custom-skills",
+              "registry:official/test-and-fix"
+            ]
+          },
+          "type": {
+            "type": "string",
+            "enum": ["skill", "rule", "subagent", "mcp-server", "workflow", "context"],
+            "description": "Resource type"
+          },
+          "include": {
+            "type": "array",
+            "description": "Specific resources to include (empty = all)",
+            "items": {
+              "type": "string"
+            }
+          },
+          "exclude": {
+            "type": "array",
+            "description": "Resources to exclude",
+            "items": {
+              "type": "string"
+            }
+          },
+          "version": {
+            "type": "string",
+            "description": "Version constraint (semver range)",
+            "examples": ["^1.0.0", ">=2.0.0 <3.0.0", "latest"]
+          },
+          "scope": {
+            "type": "string",
+            "enum": ["project", "global"],
+            "description": "Override default scope for this resource"
+          },
+          "agents": {
+            "type": "array",
+            "description": "Override preferred agents for this resource",
+            "items": {
+              "type": "string"
+            }
+          },
+          "enabled": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether resource is enabled"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "plugins": {
+      "type": "array",
+      "description": "Plugins to enable",
+      "items": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Plugin name or package"
+          },
+          "version": {
+            "type": "string",
+            "description": "Plugin version constraint"
+          },
+          "enabled": {
+            "type": "boolean",
+            "default": true
+          },
+          "config": {
+            "type": "object",
+            "description": "Plugin-specific configuration",
+            "additionalProperties": true
+          }
+        }
+      }
+    }
+  },
+  "additionalProperties": false
+}

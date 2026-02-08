@@ -1,0 +1,283 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentkit.dev/schemas/skill.schema.json",
+  "title": "AgentKit Skill",
+  "description": "Canonical schema for AgentKit skills - reusable instruction modules",
+  "type": "object",
+  "required": ["name", "version", "description", "content"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Unique identifier for the skill (kebab-case recommended)",
+      "pattern": "^[a-z0-9-]+$",
+      "minLength": 1,
+      "maxLength": 100,
+      "examples": ["test-and-fix", "code-review", "debug-errors"]
+    },
+    "version": {
+      "type": "string",
+      "description": "Semantic version (semver)",
+      "pattern": "^\\d+\\.\\d+\\.\\d+(-[a-zA-Z0-9.-]+)?(\\+[a-zA-Z0-9.-]+)?$",
+      "examples": ["1.0.0", "2.1.3-beta.1"]
+    },
+    "description": {
+      "type": "string",
+      "description": "Short summary of what the skill does",
+      "minLength": 10,
+      "maxLength": 500,
+      "examples": ["Run tests and automatically fix failures"]
+    },
+    "category": {
+      "type": "string",
+      "description": "Primary category for organization",
+      "enum": [
+        "testing",
+        "debugging",
+        "refactoring",
+        "documentation",
+        "code-generation",
+        "code-review",
+        "security",
+        "performance",
+        "deployment",
+        "project-setup",
+        "general"
+      ],
+      "default": "general"
+    },
+    "tags": {
+      "type": "array",
+      "description": "Searchable keywords",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 50
+      },
+      "uniqueItems": true,
+      "maxItems": 20,
+      "examples": [["testing", "automation", "quality", "vitest"]]
+    },
+    "author": {
+      "type": "object",
+      "description": "Skill author information",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "email": {
+          "type": "string",
+          "format": "email"
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        }
+      }
+    },
+    "license": {
+      "type": "string",
+      "description": "SPDX license identifier",
+      "examples": ["MIT", "Apache-2.0", "GPL-3.0"]
+    },
+    "supports": {
+      "type": "object",
+      "description": "Compatibility constraints",
+      "properties": {
+        "agents": {
+          "type": "array",
+          "description": "Supported coding agents",
+          "items": {
+            "type": "string",
+            "enum": [
+              "claude-code",
+              "cursor",
+              "codex",
+              "gemini-cli",
+              "windsurf",
+              "aider",
+              "continue",
+              "github-copilot",
+              "amazon-q",
+              "tabnine"
+            ]
+          },
+          "minItems": 1
+        },
+        "languages": {
+          "type": "array",
+          "description": "Supported programming languages",
+          "items": {
+            "type": "string",
+            "examples": ["typescript", "javascript", "python", "rust", "go"]
+          }
+        },
+        "frameworks": {
+          "type": "array",
+          "description": "Required or supported frameworks",
+          "items": {
+            "type": "string",
+            "examples": ["react", "vue", "express", "fastapi"]
+          }
+        }
+      }
+    },
+    "dependencies": {
+      "type": "array",
+      "description": "Required dependencies (other skills, tools, etc.)",
+      "items": {
+        "type": "object",
+        "required": ["type", "name"],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["skill", "rule", "subagent", "tool", "mcp-server"],
+            "description": "Type of dependency"
+          },
+          "name": {
+            "type": "string",
+            "description": "Dependency name/identifier"
+          },
+          "version": {
+            "type": "string",
+            "description": "Version constraint (semver range)",
+            "examples": ["^1.0.0", ">=2.0.0 <3.0.0"]
+          },
+          "optional": {
+            "type": "boolean",
+            "description": "Whether dependency is optional",
+            "default": false
+          }
+        }
+      }
+    },
+    "quality": {
+      "type": "object",
+      "description": "Self-reported or computed quality scores (0-5 scale)",
+      "properties": {
+        "structure": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 5,
+          "description": "Schema compliance, metadata completeness, formatting"
+        },
+        "clarity": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 5,
+          "description": "Clear descriptions, understandable instructions, good examples"
+        },
+        "specificity": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 5,
+          "description": "Concrete actionable guidance, not overly generic"
+        },
+        "advanced": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 5,
+          "description": "Error handling, complex workflows, advanced features"
+        }
+      },
+      "additionalProperties": false
+    },
+    "provenance": {
+      "type": "object",
+      "description": "Source and integrity information",
+      "properties": {
+        "source": {
+          "type": "string",
+          "description": "Source repository or origin",
+          "examples": ["github:agentkit/skills-typescript", "npm:@acme/skills"]
+        },
+        "commit": {
+          "type": "string",
+          "description": "Git commit SHA (if from git)",
+          "pattern": "^[a-f0-9]{40}$"
+        },
+        "integrity": {
+          "type": "string",
+          "description": "Subresource Integrity hash (sha256, sha512)",
+          "pattern": "^sha(256|384|512)-[A-Za-z0-9+/=]+$"
+        },
+        "signature": {
+          "type": "string",
+          "description": "Digital signature (PGP, etc.)"
+        }
+      }
+    },
+    "content": {
+      "type": "string",
+      "description": "The skill content in Markdown format",
+      "minLength": 50,
+      "contentMediaType": "text/markdown"
+    },
+    "examples": {
+      "type": "array",
+      "description": "Usage examples with expected outcomes",
+      "items": {
+        "type": "object",
+        "required": ["description", "input"],
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "What this example demonstrates"
+          },
+          "input": {
+            "type": "string",
+            "description": "Example user input or command"
+          },
+          "expectedOutput": {
+            "type": "string",
+            "description": "Expected result or behavior"
+          }
+        }
+      }
+    },
+    "tests": {
+      "type": "array",
+      "description": "Test cases for validating skill behavior",
+      "items": {
+        "type": "object",
+        "required": ["name", "assertions"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Test case name"
+          },
+          "setup": {
+            "type": "string",
+            "description": "Setup commands or context"
+          },
+          "assertions": {
+            "type": "array",
+            "description": "Assertions to verify",
+            "items": {
+              "type": "object",
+              "required": ["type", "value"],
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": ["contains", "matches", "file-exists", "command-succeeds"],
+                  "description": "Type of assertion"
+                },
+                "value": {
+                  "type": "string",
+                  "description": "Expected value or pattern"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Additional custom metadata",
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": false
+}

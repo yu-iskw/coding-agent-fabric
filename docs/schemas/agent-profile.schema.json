@@ -1,0 +1,187 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentkit.dev/schemas/agent-profile.schema.json",
+  "title": "AgentKit Agent Profile",
+  "description": "Configuration for a specific coding agent's resource handling",
+  "type": "object",
+  "required": ["name", "version", "displayName", "targetDirs", "translationRules"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Unique agent identifier",
+      "pattern": "^[a-z0-9-]+$",
+      "examples": ["claude-code", "cursor", "github-copilot"]
+    },
+    "version": {
+      "type": "string",
+      "description": "Profile schema version",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "displayName": {
+      "type": "string",
+      "description": "Human-readable name",
+      "examples": ["Claude Code", "Cursor", "GitHub Copilot"]
+    },
+    "targetDirs": {
+      "type": "object",
+      "description": "Directory mappings for different resource types",
+      "properties": {
+        "skills": {
+          "type": "string",
+          "description": "Relative path for skills",
+          "examples": [".claude/skills", ".cursor/rules"]
+        },
+        "rules": {
+          "type": "string",
+          "description": "Relative path for rules"
+        },
+        "agents": {
+          "type": "string",
+          "description": "Relative path for subagent definitions"
+        },
+        "hooks": {
+          "type": "string",
+          "description": "Relative path for hooks"
+        },
+        "mcp": {
+          "type": "string",
+          "description": "Path to MCP config file"
+        }
+      },
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "translationRules": {
+      "type": "object",
+      "description": "How to translate canonical resources to agent formats",
+      "properties": {
+        "skills": {
+          "type": "object",
+          "properties": {
+            "format": {
+              "type": "string",
+              "enum": ["markdown", "markdown-mdc", "json", "yaml"],
+              "description": "Target format"
+            },
+            "extension": {
+              "type": "string",
+              "description": "File extension",
+              "examples": [".md", ".mdc", ".json"]
+            },
+            "frontmatter": {
+              "type": "string",
+              "enum": ["yaml", "json", "strip", "html-comment"],
+              "description": "How to handle frontmatter"
+            },
+            "transformer": {
+              "type": "string",
+              "description": "Custom transformer function name (for advanced use)"
+            }
+          }
+        },
+        "rules": {
+          "type": "object",
+          "properties": {
+            "format": {"type": "string"},
+            "extension": {"type": "string"},
+            "frontmatter": {"type": "string"}
+          }
+        },
+        "agents": {
+          "type": "object",
+          "properties": {
+            "format": {"type": "string"},
+            "extension": {"type": "string"}
+          }
+        }
+      },
+      "additionalProperties": {
+        "type": "object"
+      }
+    },
+    "featureSupport": {
+      "type": "object",
+      "description": "Features supported by this agent",
+      "properties": {
+        "hooks": {
+          "type": "boolean",
+          "description": "Supports pre/post tool use hooks",
+          "default": false
+        },
+        "mcp": {
+          "type": "boolean",
+          "description": "Supports Model Context Protocol",
+          "default": false
+        },
+        "subagents": {
+          "type": "boolean",
+          "description": "Supports spawning subagents",
+          "default": false
+        },
+        "workflows": {
+          "type": "boolean",
+          "description": "Supports multi-step workflows",
+          "default": false
+        }
+      },
+      "additionalProperties": {
+        "type": "boolean"
+      }
+    },
+    "detection": {
+      "type": "object",
+      "description": "How to detect if this agent is installed",
+      "properties": {
+        "paths": {
+          "type": "array",
+          "description": "Paths to check for agent presence",
+          "items": {
+            "type": "string"
+          },
+          "examples": [[".claude", "~/.claude"]]
+        },
+        "commands": {
+          "type": "array",
+          "description": "Commands to check for agent installation",
+          "items": {
+            "type": "string"
+          },
+          "examples": [["claude --version"]]
+        }
+      }
+    },
+    "compatibility": {
+      "type": "object",
+      "description": "Version compatibility information",
+      "properties": {
+        "minVersion": {
+          "type": "string",
+          "description": "Minimum agent version required"
+        },
+        "maxVersion": {
+          "type": "string",
+          "description": "Maximum agent version supported"
+        },
+        "knownIssues": {
+          "type": "array",
+          "description": "Known compatibility issues",
+          "items": {
+            "type": "object",
+            "properties": {
+              "version": {"type": "string"},
+              "issue": {"type": "string"},
+              "workaround": {"type": "string"}
+            }
+          }
+        }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Additional metadata",
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": false
+}
