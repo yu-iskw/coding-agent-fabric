@@ -1,0 +1,139 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentkit.dev/schemas/subagent.schema.json",
+  "title": "AgentKit Subagent",
+  "description": "Canonical schema for AgentKit subagents - specialized agent definitions",
+  "type": "object",
+  "required": ["name", "version", "description", "prompt"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Unique identifier for the subagent (kebab-case recommended)",
+      "pattern": "^[a-z0-9-]+$",
+      "minLength": 1,
+      "maxLength": 100,
+      "examples": ["code-reviewer", "test-runner", "debug-assistant"]
+    },
+    "version": {
+      "type": "string",
+      "description": "Semantic version",
+      "pattern": "^\\d+\\.\\d+\\.\\d+(-[a-zA-Z0-9.-]+)?(\\+[a-zA-Z0-9.-]+)?$"
+    },
+    "description": {
+      "type": "string",
+      "description": "What this subagent does",
+      "minLength": 10,
+      "maxLength": 500
+    },
+    "model": {
+      "type": "string",
+      "description": "Preferred model for this subagent",
+      "examples": [
+        "claude-sonnet-4-5",
+        "claude-opus-4-6",
+        "gpt-4",
+        "gemini-2.0-flash"
+      ]
+    },
+    "prompt": {
+      "type": "string",
+      "description": "System prompt or instructions for the subagent",
+      "minLength": 50
+    },
+    "tools": {
+      "type": "array",
+      "description": "Tools available to this subagent",
+      "items": {
+        "type": "string",
+        "examples": ["Read", "Write", "Edit", "Bash", "Grep", "Glob"]
+      },
+      "uniqueItems": true
+    },
+    "maxTurns": {
+      "type": "integer",
+      "description": "Maximum conversation turns",
+      "minimum": 1,
+      "maximum": 100,
+      "default": 10
+    },
+    "temperature": {
+      "type": "number",
+      "description": "Model temperature setting",
+      "minimum": 0,
+      "maximum": 2,
+      "default": 1
+    },
+    "context": {
+      "type": "object",
+      "description": "Additional context to provide",
+      "properties": {
+        "files": {
+          "type": "array",
+          "description": "Files to include in context",
+          "items": {
+            "type": "string"
+          }
+        },
+        "directories": {
+          "type": "array",
+          "description": "Directories to include in context",
+          "items": {
+            "type": "string"
+          }
+        },
+        "environment": {
+          "type": "object",
+          "description": "Environment variables",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "tags": {
+      "type": "array",
+      "description": "Searchable keywords",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    },
+    "author": {
+      "type": "object",
+      "properties": {
+        "name": {"type": "string"},
+        "email": {"type": "string", "format": "email"},
+        "url": {"type": "string", "format": "uri"}
+      }
+    },
+    "license": {
+      "type": "string",
+      "description": "SPDX license identifier"
+    },
+    "supports": {
+      "type": "object",
+      "properties": {
+        "agents": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "properties": {
+        "source": {"type": "string"},
+        "commit": {"type": "string"},
+        "integrity": {"type": "string"},
+        "signature": {"type": "string"}
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": false
+}
