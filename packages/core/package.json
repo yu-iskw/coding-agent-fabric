@@ -33,7 +33,7 @@
   "dependencies": {
     "@coding-agent-fabric/common": "workspace:*",
     "@coding-agent-fabric/plugin-api": "workspace:*",
-    "tar": "^7.5.7"
+    "tar": "^7.5.11"
   },
   "devDependencies": {
     "@types/node": "^24.10.10",
