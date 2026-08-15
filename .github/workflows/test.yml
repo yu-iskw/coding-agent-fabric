@@ -12,50 +12,60 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: Tests
+name: CI
 
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - "**/*.md"
+      - "docs/**"
+      - ".claude/**"
+      - ".cursor/**"
+      - ".vscode/**"
   pull_request:
+    paths-ignore:
+      - "**/*.md"
+      - "docs/**"
+      - ".claude/**"
+      - ".cursor/**"
+      - ".vscode/**"
   workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-permissions: read-all
+permissions:
+  contents: read
+  checks: write
 
 jobs:
   test:
-    name: Run Unit Tests
+    name: Build and Unit Tests
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v6
-
       - name: Harden Runner
         uses: step-security/harden-runner@v2
         with:
           egress-policy: audit
-
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
           node-version-file: .node-version
           cache: pnpm
-
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-
       - name: Build packages
         run: pnpm build
-
       - name: Run tests
         run: pnpm test
+      - name: Trunk Check
+        uses: trunk-io/trunk-action@v1
 
   integration-tests:
     name: Run Integration Tests
@@ -65,11 +75,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
-
       - name: Harden Runner
         uses: step-security/harden-runner@v2
         with:
           egress-policy: audit
-
       - name: Run Integration Tests
         run: make -C integration_tests test-verbose
